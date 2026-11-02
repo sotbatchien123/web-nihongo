@@ -2,7 +2,8 @@
 
 ## Trạng thái hiện tại
 
-- Dự án ở `E:\PROJECT\Web nihongo`, quản lý bằng Git (nhánh `main`). Kiểm tra dữ liệu: `node tools/validate.js` (phải ra 0 lỗi trước khi commit).
+- Web trực tuyến: https://sotbatchien123.github.io/web-nihongo/ (GitHub Pages, nhánh `main`, tự dựng lại khi push). Kho công khai: https://github.com/sotbatchien123/web-nihongo.
+- Dự án ở `E:\PROJECT\Web nihongo`, quản lý bằng Git (nhánh `main`, remote `origin`). Kiểm tra dữ liệu: `node tools/validate.js` (phải ra 0 lỗi trước khi commit).
 
 - Web tĩnh chạy được đủ 6 phần; dữ liệu đầy đủ cho cả 50 bài (20–60 từ, 2–9 điểm ngữ pháp, 1 bài đọc, 1 bài nghe, 8 Hán tự, 9 câu ngữ pháp mỗi bài; tổng 400 Hán tự) và 4 đề thi thử: bài 1–3 (15 câu, 20 phút), bài 1–10 (18 câu, 25 phút), N5 bài 1–25 (25 câu, 40 phút), N4 bài 26–50 (28 câu, 45 phút) — `data/exams.js`, `data/exams2.js`; cộng 20 đề N5 (43 câu, 45 phút) và 20 đề N4 (44 câu, 55 phút) sinh tự động bởi `js/examgen.js`.
 - Phần 1 trình bày theo bố cục Riki: mục lục, bảng từ vựng STT/Hiragana/Kanji/Ý nghĩa, ô ngữ pháp đánh số có giải thích + ví dụ 例.
@@ -18,6 +19,11 @@
 - Đề sinh tự động chưa có các dạng 言い換え類義, 発話表現, 即時応答, 用法 (N4).
 
 ## Nhật ký phiên
+
+### 2026-11-02 — Đưa web lên mạng
+- Tạo kho công khai `sotbatchien123/web-nihongo` (theo lựa chọn của người dùng), đẩy nhánh `main`, thêm `.nojekyll`, bật GitHub Pages (nguồn: `main` /). Trang dựng xong, HTTP 200.
+- Kiểm tra trên trang thật: 50 bài, 44 đề, 400 Hán tự nạp đủ; mở thử Từ vựng bài 1, Bài đọc bài 25, Bài nghe bài 50, Hán tự bài 37, Luyện tập bài 12, danh sách đề; làm đề N5 số 7 đúng hết được 43/43; không lỗi console.
+- README có địa chỉ web và quy trình cập nhật (validate → commit → push).
 
 ### 2026-11-02 — Git + script kiểm tra
 - Thêm `tools/validate.js` (chạy `node tools/validate.js`): kiểm tra khai báo file, từ vựng, ngữ pháp, token bài đọc, 4 phương án/đáp án, `ev`, mẹo/giải thích, Hán tự trùng + nét chữ, đề thi, 40 đề tự sinh, `js/yomi.js`. Kết quả hiện tại: 0 lỗi, 4 cảnh báo (tỉ lệ lặp câu ở đề tự sinh). Đã thử làm hỏng bản sao dữ liệu → script bắt đúng lỗi.

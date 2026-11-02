@@ -1,5 +1,7 @@
 # Nihongo 50 Bài — web học tiếng Nhật theo lộ trình Minna no Nihongo
 
+**Web trực tuyến:** https://sotbatchien123.github.io/web-nihongo/ · Mã nguồn: https://github.com/sotbatchien123/web-nihongo
+
 > **Quy định:** đọc `GHI_NHO.md` trước khi làm việc với dự án và cập nhật nó cuối mỗi phiên.
 
 Web tĩnh (HTML/CSS/JS thuần, không cần build). 6 phần:
@@ -27,7 +29,18 @@ Mở `index.html` trực tiếp trên trình duyệt, hoặc chạy máy chủ t
 python -m http.server 8765
 ```
 
-Deploy: đưa nguyên thư mục lên bất kỳ hosting tĩnh nào (GitHub Pages, Netlify, Vercel…).
+## Cập nhật web trực tuyến
+
+Web chạy bằng GitHub Pages từ nhánh `main` (thư mục gốc). Mỗi lần đẩy code lên `main`, GitHub tự dựng lại trang sau khoảng 1–2 phút:
+
+```bash
+node tools/validate.js
+git add -A
+git commit -m "mô tả thay đổi"
+git push
+```
+
+Nếu trình duyệt vẫn hiện bản cũ, tải lại trang bằng Ctrl+F5.
 
 ## Cấu trúc
 
