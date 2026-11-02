@@ -1,0 +1,15 @@
+# Cấu hình cục bộ của Claude / trình soạn thảo
+.claude/
+.vscode/
+.idea/
+
+# Rác hệ điều hành
+Thumbs.db
+Desktop.ini
+.DS_Store
+
+# Python / Node (nếu sau này có)
+__pycache__/
+*.pyc
+node_modules/
+*.log
