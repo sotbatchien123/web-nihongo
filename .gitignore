@@ -13,3 +13,6 @@ __pycache__/
 *.pyc
 node_modules/
 *.log
+
+# Tài liệu tham khảo tải từ Drive (có bản quyền, KHÔNG đưa lên Git)
+_tailieu/

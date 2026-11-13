@@ -32,7 +32,9 @@ catch (e) { err("js/app.js", `lỗi cú pháp: ${e.message}`); }
 for (const f of fs.readdirSync(path.join(ROOT, "data")).filter((f) => /^lesson\d+\.js$/.test(f)))
   if (!scripts.includes(`data/${f}`)) err("index.html", `chưa khai báo data/${f}`);
 
-const { CATALOG = [], LESSONS = {}, EXAMS = [], KANJIVG = {}, YOMI = [] } = ctx;
+const { CATALOG = [], LESSONS = {}, EXAMS = [], KANJIVG = {}, YOMI = [], KPARTS = {}, KMEMO = {}, RADICALS = [] } = ctx;
+if (RADICALS.length !== 214) err("data/radicals.js", `cần 214 bộ thủ, có ${RADICALS.length}`);
+RADICALS.forEach((r, i) => { if (r[0] !== i + 1 || r.length !== 6) err("data/radicals.js", `mục #${i + 1} sai định dạng [số, bộ, nét, tên, nghĩa, biến thể]`); });
 
 // ---------- 2. Kiểm tra từng bài ----------
 const opts4 = (where, q) => {
@@ -105,6 +107,8 @@ for (const c of CATALOG) {
     if (!k.hv || !k.vi || !k.words || !k.words.length || !k.use) err(w, "thiếu hv / vi / words / use");
     if (!KANJIVG[k.c]) err(w, "chưa có dữ liệu nét chữ (chạy lại tools/build_kanjivg.py)");
     else if (!KANJIVG[k.c].p.length) err(w, "dữ liệu nét chữ rỗng");
+    if (!KPARTS[k.c] || !KPARTS[k.c].rad) err(w, "chưa có bộ thủ (chạy lại tools/build_kanjiparts.py)");
+    if (!KMEMO[k.c]) err(w, "chưa có câu gợi nhớ trong data/kanjimemo.js");
     if (kanjiSeen.has(k.c)) err(w, `trùng với bài ${kanjiSeen.get(k.c)}`);
     kanjiSeen.set(k.c, c.id);
   });

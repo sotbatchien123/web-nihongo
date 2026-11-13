@@ -186,3 +186,26 @@ rt { font-size: 11px; color: var(--muted); }
 .tts-banner ul { margin: 6px 0 0; padding-left: 20px; }
 .tts-banner summary { cursor: pointer; margin-top: 4px; color: var(--accent); }
 @media (max-width: 1072px) { .tts-banner { margin: 12px 16px 0; } }
+
+/* Kiến thức nền: bảng chữ cái */
+.kana-table { display: flex; flex-direction: column; gap: 6px; overflow-x: auto; }
+.kana-row { display: grid; grid-template-columns: 70px repeat(var(--cols), minmax(52px, 1fr)); gap: 6px; align-items: stretch; }
+.kana-row.wrap { display: flex; flex-wrap: wrap; }
+.kana-row.wrap .kana-cell { min-width: 64px; }
+.kana-label { font-size: 13px; color: var(--muted); align-self: center; }
+.kana-cell { display: flex; flex-direction: column; align-items: center; padding: 6px 2px; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); color: var(--ink); cursor: pointer; }
+.kana-cell b { font-size: 24px; font-weight: 500; }
+.kana-cell small { color: var(--muted); font-size: 12px; }
+.kana-cell:hover { border-color: var(--accent); }
+.kana-cell.empty { border-style: dashed; opacity: .35; cursor: default; }
+
+/* Kiến thức nền: bộ thủ */
+.rad-grid { display: grid; gap: 8px; grid-template-columns: repeat(auto-fill, minmax(92px, 1fr)); }
+.rad-tile { position: relative; display: flex; flex-direction: column; align-items: center; padding: 8px 4px; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); color: var(--ink); cursor: pointer; }
+.rad-tile b { font-size: 28px; font-weight: 500; }
+.rad-tile small { color: var(--muted); font-size: 12px; }
+.rad-tile .n { position: absolute; left: 6px; top: 4px; font-size: 11px; color: var(--muted); }
+.rad-tile .nm { font-size: 13px; }
+.rad-tile .cnt { position: absolute; right: 6px; top: 4px; font-size: 11px; background: var(--accent-soft); color: var(--accent); border-radius: 999px; padding: 0 6px; }
+.rad-tile:hover { border-color: var(--accent); }
+.memo { margin-top: 10px; padding: 10px 12px; border-radius: 10px; background: var(--accent-soft); }

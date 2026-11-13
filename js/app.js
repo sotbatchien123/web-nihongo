@@ -98,7 +98,8 @@
   function renderTabs(r) {
     const id = r.id || store.get("last", 1);
     $("#tabs").innerHTML = TABS.map(([k, n]) => `<a href="#/l/${id}/${k}" class="${r.view === "lesson" && r.tab === k ? "on" : ""}">${n}</a>`).join("") +
-      `<a href="#/exam" class="${r.view === "exam" ? "on" : ""}">6 · Luyện thi</a>`;
+      `<a href="#/exam" class="${r.view === "exam" ? "on" : ""}">6 · Luyện thi</a>` +
+      `<a href="#/k" class="${r.view === "hub" ? "on" : ""}">Kiến thức nền</a>`;
     sel.value = id;
   }
 
@@ -106,6 +107,7 @@
     const p = location.hash.replace(/^#\/?/, "").split("?")[0].split("/");
     if (p[0] === "l") return { view: "lesson", id: +p[1] || 1, tab: TABS.some((t) => t[0] === p[2]) ? p[2] : "vocab" };
     if (p[0] === "exam") return { view: "exam", examId: p[1] };
+    if (p[0] === "k") return { view: "hub", page: p[1] || "" };
     return { view: "home" };
   }
 
@@ -121,10 +123,14 @@
       if (!L) return renderMissing(r.id);
       ({ vocab: viewVocab, read: viewRead, listen: viewListen, kanji: viewKanji, practice: viewPractice })[r.tab](L);
     } else if (r.view === "exam") viewExam(r.examId);
+    else if (r.view === "hub") Hub.render(r.page, hubCtx());
     else viewHome();
     app.focus({ preventScroll: true }); window.scrollTo(0, 0);
   }
   window.addEventListener("hashchange", route);
+
+  // Các hàm dùng chung truyền cho js/hub.js (trang Kiến thức nền).
+  const hubCtx = () => ({ app, $, $$, esc, shuffle, store, TTS, speakBtn, mcq, openModal, exList, flash, quizRun, setCleanup: (f) => (cleanup = f) });
 
   const lessonHead = (L, part) => `<h1 class="jp">第${L.id}課　${esc(L.title)}</h1><p class="sub">${esc(L.titleVi)} · ${part}</p>`;
 
@@ -299,7 +305,11 @@
       $("#kd").innerHTML = `<div class="card kdetail"><div><div class="stroke-box" id="sb"></div>
           <div class="row" style="margin-top:8px"><button class="btn sm" id="replay">↻ Xem lại nét</button><span class="small muted" id="sc"></span></div></div>
         <div><div class="row"><span class="jp" style="font-size:40px">${k.c}</span><b>${esc(k.hv)}</b> — ${esc(k.vi)}</div>
-          <table class="kinfo"><tr><td>Âm On</td><td class="jp">${esc(k.on)}</td></tr><tr><td>Âm Kun</td><td class="jp">${esc(k.kun)}</td></tr></table>
+          <table class="kinfo"><tr><td>Âm On</td><td class="jp">${esc(k.on)}</td></tr><tr><td>Âm Kun</td><td class="jp">${esc(k.kun)}</td></tr>
+            ${(() => { const ri = Hub.radInfo(k.c); if (!ri) return "";
+              return `${ri.r ? `<tr><td>Bộ thủ</td><td><a href="#/k/radicals" class="jp">${esc(ri.form || ri.r[1])}</a> — bộ ${esc(ri.r[3])} (${esc(ri.r[4])}), số ${ri.r[0]}</td></tr>` : ""}
+                ${ri.parts.length > 1 ? `<tr><td>Thành phần</td><td class="jp">${ri.parts.map((c) => esc(Hub.partName(c))).join(" ＋ ")}</td></tr>` : ""}`; })()}</table>
+          ${window.KMEMO && KMEMO[k.c] ? `<div class="memo"><b>💡 Gợi nhớ:</b> ${esc(KMEMO[k.c])}</div>` : ""}
           <h3 style="margin-top:12px">Từ thường gặp</h3>
           ${k.words.map(([w, r, vi]) => `<div class="ex row" style="flex-wrap:nowrap">${speakBtn(r.split("/")[0])}<div><span class="jp" style="font-size:19px">${esc(w)}</span> <span class="jp muted">${esc(r)}</span> — ${esc(vi)}</div></div>`).join("")}
           <div class="notice" style="margin-top:10px"><b>Trường hợp sử dụng:</b> ${esc(k.use)}</div></div></div>`;
@@ -411,8 +421,7 @@
       out.push({ q: `Cách đọc của「${x.w}」là gì?`, o: [x.r, ...pick(others, 3, [x.r])], a: 0, ex: `${x.w}【${x.r}】: ${x.vi}. ${x.k.use}` });
       out.push({ q: `Từ nào có nghĩa “${x.vi}”?`, o: [x.w, ...pick([...new Set(words.map((y) => y.w))], 3, [x.w])], a: 0, ex: `${x.w}【${x.r}】 = ${x.vi}. Chữ ${x.k.c} (${x.k.hv}) mang nghĩa “${x.k.vi}”.` });
     });
-    ks.forEach((k) => out.push({ q: `Chữ「${k.c}」mang nghĩa gì?`, o: [k.vi, ...pick([...new Set(ks.map((y) => y.vi))], 3, [k.vi])], a: 0, ex: `${k.c} — ${k.hv}: ${k.vi}. On: ${k.on}; Kun: ${k.kun}.` }));
-    return out.filter((q) => new Set(q.o).size === 4);
+    ks.forEach((k) => out.push({ q: `Chữ「${k.c}」mang nghĩa gì?`, o: [k.vi, ...pick([...new Set(ks.map((y) => y.vi))], 3, [k.vi])], a: 0, ex: `${k.c} — ${k.hv}: ${k.vi}. On: ${k.on}; Kun: ${k.kun}.` }));    return out.filter((q) => new Set(q.o).size === 4);
   }
 
   // ---------- Phần 6: Luyện thi ----------

@@ -20,6 +20,11 @@
 
 ## Nhật ký phiên
 
+### 2026-11-13 — Mở rộng từ tài liệu Drive (đợt 1: chữ cái + bộ thủ)
+- Người dùng gửi 7 thư mục Drive (N5–N1, Kaiwa, Giáo trình N4). Đã liệt kê bằng `embeddedfolderview`, tải tài liệu (PDF/xlsx/pptx, bỏ mp3/video/zip) về `_tailieu/` — **đã thêm vào .gitignore, không được đưa lên Git** (sách thương mại, đề JLPT thật có bản quyền). Chỉ đọc để tham khảo kiến thức/format, không chép câu chữ.
+- Kế hoạch người dùng duyệt: làm hết phần A (trừ tập viết Hán tự và đề thật), hết phần B; làm lại 40 đề N5–N4 cho giống đề thật; N3–N1 trước mắt chỉ bổ sung kiến thức, đề làm sau; đẩy web sau mỗi đợt.
+- Đợt 1: trang mới "Kiến thức nền" (`#/k`, `js/hub.js`): Bài 0 bảng chữ cái (清音, 濁音, 拗音, っ, trường âm, katakana mở rộng, cặp chữ dễ nhầm) + luyện nhận mặt chữ; 214 bộ thủ (`data/radicals.js`, tự soạn tên Hán Việt/nghĩa). Phần 4 Hán tự hiện bộ thủ, thành phần (`data/kanjiparts.js` sinh bằng `tools/build_kanjiparts.py` từ KanjiVG) và câu gợi nhớ (`data/kanjimemo.js`, 400 câu tự viết — là mẹo nhớ theo hình, không phải từ nguyên).
+
 ### 2026-11-02 — Đưa web lên mạng
 - Tạo kho công khai `sotbatchien123/web-nihongo` (theo lựa chọn của người dùng), đẩy nhánh `main`, thêm `.nojekyll`, bật GitHub Pages (nguồn: `main` /). Trang dựng xong, HTTP 200.
 - Kiểm tra trên trang thật: 50 bài, 44 đề, 400 Hán tự nạp đủ; mở thử Từ vựng bài 1, Bài đọc bài 25, Bài nghe bài 50, Hán tự bài 37, Luyện tập bài 12, danh sách đề; làm đề N5 số 7 đúng hết được 43/43; không lỗi console.
