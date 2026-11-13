@@ -168,6 +168,16 @@ for (const lv of ["N5", "N4"]) {
   Object.entries(all).forEach(([nm, arr]) => { const p = Math.round(100 * (1 - new Set(arr).size / arr.length)); if (p > 0) warn(`đề ${lv}`, `${nm}: ${p}% câu lặp giữa các đề`); });
 }
 
+// ---------- Kiến thức nền & N3–N1 ----------
+const H = ctx.HUBDATA || {};
+(H.jita || []).forEach((r, i) => { if (r.length !== 8 || r.slice(0, 7).some((x) => !x)) err("data/hub_data.js", `cặp tự/tha #${i + 1} sai định dạng`); });
+Object.entries(H.fukushi || {}).forEach(([g, l]) => l.forEach((r) => { if (r.length !== 5 || !r[0] || !r[2]) err("data/hub_data.js", `phó từ ${g}: ${r[0]} sai định dạng`); }));
+(H.kaiwa || []).forEach((k) => k.lines.forEach((l) => { if (l.length !== 3 || !l[1] || !l[2]) err("data/hub_data.js", `hội thoại ${k.title}: dòng sai định dạng`); }));
+Object.entries(ctx.ADV || {}).forEach(([lv, D]) => {
+  const seenP = new Set();
+  D.grammar.forEach((g) => { if (g.length !== 6 || g.slice(0, 5).some((x) => !x)) err(`data/advanced.js ${lv}`, `mẫu ${g[0]} sai định dạng`); if (seenP.has(g[0])) err(`data/advanced.js ${lv}`, `trùng mẫu ${g[0]}`); seenP.add(g[0]); });
+});
+
 // ---------- 4. Từ điển cách đọc ----------
 // (RegExp tạo trong vm context khác nên không dùng instanceof được.)
 const isRegExp = (x) => Object.prototype.toString.call(x) === "[object RegExp]";

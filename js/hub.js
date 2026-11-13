@@ -399,6 +399,45 @@
   }
   Hub.topicOf = topicOf;
 
+  // ---------- 10. Kiến thức N3 – N2 – N1 ----------
+  ["N3", "N2", "N1"].forEach((lv) => {
+    PAGES[lv.toLowerCase()] = { group: "Nâng cao N3 – N1", title: `Kiến thức ${lv}`, desc: `Cấu trúc đề, lộ trình học, mẫu ngữ pháp trọng tâm ${lv} kèm ví dụ và luyện tập.`, render: (ctx) => renderAdv(ctx, lv) };
+  });
+  function renderAdv(ctx, lv) {
+    const { app, esc, speakBtn, shuffle, mcq } = ctx;
+    const D = (window.ADV || {})[lv]; if (!D) { app.innerHTML = "<p>Chưa có dữ liệu.</p>"; return; }
+    app.innerHTML = `<h1>Kiến thức ${lv}</h1><p class="sub">${esc(D.size)} Nội dung dưới đây tự biên soạn; tên sách chỉ để bạn đối chiếu với tài liệu mình đang có.</p>
+      <div class="row" style="margin-bottom:10px">${["N3", "N2", "N1"].map((x) => `<a class="btn ${x === lv ? "primary" : ""}" href="#/k/${x.toLowerCase()}">${x}</a>`).join("")}</div>
+      <h2>1. Cấu trúc đề ${lv}</h2>
+      <div class="vtable-wrap"><table class="vtable"><thead><tr><th>Phần thi</th><th>Thời gian</th><th>Dạng câu (số câu)</th></tr></thead><tbody>
+        ${D.exam.map(([n, m, d]) => `<tr><td class="jp">${esc(n)}</td><td>${m} phút</td><td class="jp small">${esc(d)}</td></tr>`).join("")}</tbody></table></div>
+      <p class="small">${esc(D.pass)} <span class="muted">Số câu theo cấu trúc hiện hành, có thể chênh 1–2 câu giữa các kỳ.</span></p>
+      <h2>2. Lộ trình gợi ý</h2><ol>${D.plan.map((p) => `<li>${esc(p)}</li>`).join("")}</ol>
+      <div class="vtable-wrap"><table class="vtable"><thead><tr><th>Kỹ năng</th><th>Sách tham khảo phổ biến</th></tr></thead><tbody>${D.books.map(([k, b]) => `<tr><td>${esc(k)}</td><td>${esc(b)}</td></tr>`).join("")}</tbody></table></div>
+      <h2>3. Mẫu ngữ pháp trọng tâm <span class="pill">${D.grammar.length} mẫu</span></h2>
+      <div class="row" style="margin-bottom:10px"><input id="aq" type="search" placeholder="Tìm mẫu hoặc nghĩa…" style="flex:1;min-width:180px"><button class="btn primary" id="aquiz">✎ Luyện 10 câu</button></div>
+      <div id="aqz" class="stack"></div><div id="alist" class="stack"></div>`;
+    const draw = () => { const q = app.querySelector("#aq").value.trim().toLowerCase();
+      app.querySelector("#alist").innerHTML = D.grammar.map((g, i) => [g, i]).filter(([g]) => !q || g[0].includes(q) || g[2].toLowerCase().includes(q)).map(([[p, c, m, ex, exv, note], i]) => `<section class="gbox"><h3 class="jp">${i + 1}. ${esc(p)}</h3>
+        <div class="func"><b>Nghĩa:</b> ${esc(m)}</div><ul class="parts"><li><b>Cách nối:</b> <span class="jp">${esc(c)}</span></li></ul>
+        <div class="rei">${speakBtn(ex)}<div><span class="rei-n">例：</span><span class="jp">${esc(ex)}</span><div class="small muted">${esc(exv)}</div></div></div>
+        ${note ? `<div class="notes"><b>Lưu ý:</b> ${esc(note)}</div>` : ""}</section>`).join(""); };
+    app.querySelector("#aq").oninput = draw; draw();
+    app.querySelector("#aquiz").onclick = () => {
+      const root = app.querySelector("#aqz"); root.innerHTML = "";
+      const core = (p) => p.replace(/[～（）()]/g, "").split(/[／/]/)[0].trim();
+      shuffle(D.grammar).slice(0, 10).forEach((g, i) => {
+        const others = shuffle(D.grammar.filter((x) => x !== g));
+        const c = core(g[0]);
+        // Nếu mẫu xuất hiện nguyên văn trong ví dụ: điền mẫu vào câu; nếu không: chọn nghĩa của mẫu.
+        const q = g[3].includes(c) && c.length >= 2
+          ? { q: `${g[3].replace(c, "（　　）")}　(${g[4]})`, o: [g[0], ...others.slice(0, 3).map((x) => x[0])], a: 0 }
+          : { q: `Mẫu「${g[0]}」nghĩa là gì?`, o: [g[2], ...others.slice(0, 3).map((x) => x[2])], a: 0 };
+        root.appendChild(mcq(q, i + 1, () => `<span class="jp">${esc(g[0])}</span>: ${esc(g[2])}. ${esc(g[3])} — ${esc(g[4])}`));
+      });
+    };
+  }
+
   // ---------- 9. Tài liệu chính thức miễn phí (chỉ dẫn link về trang gốc) ----------
   const FREE = [
     ["いろどり 生活の日本語 (Irodori)", "https://www.irodori.jpf.go.jp/", "Giáo trình hội thoại sinh hoạt miễn phí của Japan Foundation, có file nghe giọng thật (trình độ A1–A2, tương đương N5–N4)."],
