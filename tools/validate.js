@@ -116,33 +116,56 @@ for (const c of CATALOG) {
 
 // ---------- 3. Đề thi ----------
 const ids = new Set();
+const partsOf = (e) => e.parts || [{ name: "", minutes: e.minutes, sections: e.sections }];
 EXAMS.forEach((e) => {
   if (ids.has(e.id)) err(`đề ${e.id}`, "id bị trùng");
   ids.add(e.id);
-  if (!(e.minutes > 0)) err(`đề ${e.id}`, "thiếu thời gian làm bài");
   const qs = new Set();
-  e.sections.forEach((s, si) => {
-    (s.listen || []).forEach(([sp]) => { if (!["F", "M"].includes(sp)) err(`đề ${e.id} phần ${si + 1}`, `người nói phải là F/M: ${sp}`); });
-    s.items.forEach((it, ii) => {
-      const w = `đề ${e.id} phần ${si + 1} câu ${ii + 1}`;
-      opts4(w, it);
-      if (!it.ex) err(w, "thiếu giải thích");
-      (it.listen || []).forEach(([sp]) => { if (!["F", "M"].includes(sp)) err(w, `người nói phải là F/M: ${sp}`); });
-      if (qs.has(it.q) && !it.listen && !s.listen && !s.passage) err(w, "trùng đề bài trong cùng một đề");
-      qs.add(it.q);
+  partsOf(e).forEach((p, pi) => {
+    if (!(p.minutes > 0)) err(`đề ${e.id} phần thi ${pi + 1}`, "thiếu thời gian làm bài");
+    p.sections.forEach((s, si) => {
+      (s.listen || []).forEach(([sp]) => { if (!["F", "M"].includes(sp)) err(`đề ${e.id} mục ${si + 1}`, `người nói phải là F/M: ${sp}`); });
+      s.items.forEach((it, ii) => {
+        const w = `đề ${e.id} (${p.name || "bài"}) ${s.name} câu ${ii + 1}`;
+        // Câu nghe 発話表現 / 即時応答 có 3 phương án như đề thật; còn lại 4.
+        if (it.spoken) { if (it.o.length !== 3 || new Set(it.o).size !== 3 || !(it.a >= 0 && it.a < 3)) err(w, "câu nghe không in phương án cần đúng 3 phương án khác nhau"); }
+        else opts4(w, it);
+        if (!it.ex) err(w, "thiếu giải thích");
+        (it.listen || []).forEach(([sp, t]) => { if (!["F", "M"].includes(sp) || !t) err(w, `lời thoại sai định dạng (người nói F/M): ${sp}`); });
+        const key = it.q + "|" + it.o[it.a] + "|" + (it.ask || "") + "|" + ((it.listen || [])[0] || [])[1];
+        if (qs.has(key)) err(w, "trùng câu trong cùng một đề");
+        qs.add(key);
+      });
     });
   });
 });
 
 const gen = EXAMS.filter((e) => e.generated);
+const PLAN = ctx.EXAM_PLAN || {};
+// Số câu từng dạng theo đề thật (N5/N4 từ 2020).
+const SECT = { "漢字読み": "yomi", "表記": "hyoki", "文脈規定": "bunmyaku", "言い換え類義": "iikae", "用法": "youhou", "文法形式の判断": "bunpo", "文の組み立て": "star",
+  "文章の文法": 4, "内容理解（短文）": "tanbun", "内容理解（中文）": "chubun", "情報検索": "joho", "課題理解": "kadai", "ポイント理解": "point", "発話表現": "hatsuwa", "即時応答": "sokuji" };
 for (const lv of ["N5", "N4"]) {
   const list = gen.filter((e) => e.group === lv);
   if (list.length !== 20) err("examgen", `cần 20 đề ${lv}, có ${list.length}`);
-  const min = lv === "N5" ? [7, 5, 6, 9, 4] : [7, 5, 7, 9, 4];
-  list.forEach((e) => e.sections.slice(0, 5).forEach((s, i) => { if (s.items.length < min[i]) err(`đề ${e.id}`, `${s.name} chỉ có ${s.items.length}/${min[i]} câu`); }));
-  // Tỉ lệ lặp câu giữa các đề (chỉ cảnh báo)
-  const pct = [2, 4].map((si) => { const all = list.flatMap((e) => e.sections[si].items.map((it) => it.q)); return [list[0] && list[0].sections[si].name, Math.round(100 * (1 - new Set(all).size / all.length))]; });
-  pct.forEach(([name, p]) => { if (p > 0) warn(`đề ${lv}`, `${name}: ${p}% câu lặp giữa các đề`); });
+  const plan = PLAN[lv]; if (!plan) { err("examgen", `thiếu EXAM_PLAN.${lv}`); continue; }
+  const all = {};
+  list.forEach((e) => {
+    if (!e.parts || e.parts.length !== 3) return err(`đề ${e.id}`, "cần 3 phần thi");
+    e.parts.forEach((p, pi) => { if (p.minutes !== plan.min[pi]) err(`đề ${e.id}`, `${p.name}: ${p.minutes} phút, cần ${plan.min[pi]}`); });
+    const names = e.parts.flatMap((p) => p.sections.map((s) => s.name.replace(/^もんだい\d+\s*/, "")));
+    Object.entries(SECT).forEach(([nm, k]) => {
+      const need = typeof k === "number" ? k : plan[k];
+      const s = e.parts.flatMap((p) => p.sections).find((x) => x.name.replace(/^もんだい\d+\s*/, "") === nm);
+      if (!need) return;
+      if (!s) return err(`đề ${e.id}`, `thiếu dạng ${nm}`);
+      if (s.items.length !== need) err(`đề ${e.id}`, `${nm} có ${s.items.length}/${need} câu`);
+      (all[nm] = all[nm] || []).push(...s.items.map((it) => it.q + "|" + (it.ask || "") + "|" + it.o[it.a] + "|" + (s.passage || "").slice(0, 30)));
+    });
+    if (names.length !== new Set(names).size) err(`đề ${e.id}`, "lặp tên dạng câu");
+  });
+  // Tỉ lệ lặp câu giữa 20 đề (chỉ cảnh báo).
+  Object.entries(all).forEach(([nm, arr]) => { const p = Math.round(100 * (1 - new Set(arr).size / arr.length)); if (p > 0) warn(`đề ${lv}`, `${nm}: ${p}% câu lặp giữa các đề`); });
 }
 
 // ---------- 4. Từ điển cách đọc ----------

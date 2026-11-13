@@ -425,75 +425,131 @@
   }
 
   // ---------- Phần 6: Luyện thi ----------
-  const examCount = (e) => e.sections.reduce((n, s) => n + s.items.length, 0);
+  // Đề mới có ex.parts = [{name, minutes, sections}] (3 phần thi, giờ riêng như JLPT); đề cũ chỉ có ex.sections + ex.minutes.
+  const examParts = (e) => e.parts || [{ name: "", minutes: e.minutes, sections: e.sections }];
+  const examCount = (e) => examParts(e).reduce((n, p) => n + p.sections.reduce((m, s) => m + s.items.length, 0), 0);
+  // Điểm chuẩn JLPT (sau 2010): tổng 180, phần 言語知識・読解 tối đa 120 (sàn 38), 聴解 tối đa 60 (sàn 19).
+  const PASS = { N5: 80, N4: 90, N3: 95, N2: 90, N1: 100 };
   function examGroup(title, list, note) {
     if (!list.length) return "";
     return `<h2>${esc(title)}</h2>${note ? `<p class="small muted">${esc(note)}</p>` : ""}
       <div class="exam-grid">${list.map((e) => { const best = store.get("exam:" + e.id, null);
         return `<a class="exam-tile card" href="#/exam/${e.id}"><b>${esc(e.name)}</b>
-          <span class="small muted">${examCount(e)} câu · ${e.minutes} phút</span>
+          <span class="small muted">${examCount(e)} câu · ${e.parts ? e.parts.map((p) => p.minutes).join("+") : e.minutes} phút</span>
           <span class="small">${best == null ? "Chưa làm" : `Kỷ lục: ${best}/${examCount(e)}`}</span></a>`; }).join("")}</div>`;
   }
   function viewExam(examId) {
     const ex = EXAMS.find((e) => e.id === examId);
     if (!ex) {
       app.innerHTML = `<h1>Phần 6 · Luyện thi</h1><p class="sub">Làm đề có giới hạn thời gian, chấm điểm và giải thích chi tiết từng câu.</p>
-        <div class="notice">Đề thi JLPT thật (các năm từ 2000 đến nay) thuộc bản quyền của Japan Foundation và JEES nên không thể đưa lên web.
-        Các đề dưới đây là <b>đề mô phỏng tự biên soạn</b> theo cấu trúc phần thi JLPT N5/N4 (chữ – từ vựng, ngữ pháp, đọc hiểu, nghe hiểu). Để làm đề chính thức, hãy dùng đề mẫu do JLPT công bố miễn phí:</div>
+        <div class="notice">Đề thi JLPT thật thuộc bản quyền của Japan Foundation và JEES nên không đưa lên web.
+        Các đề dưới đây là <b>đề mô phỏng tự biên soạn</b>, theo đúng cấu trúc, số câu, thời gian và dạng câu hỏi của đề JLPT thật (đối chiếu đề các năm 2010–2024). Đề mẫu chính thức miễn phí:</div>
         <ul>${OFFICIAL_LINKS.map((l) => `<li><a href="${l.url}" target="_blank" rel="noopener">${esc(l.name)}</a></li>`).join("")}</ul>
-        ${examGroup("Đề theo mốc bài học", EXAMS.filter((e) => !e.group))}
-        ${examGroup("20 đề N5 (từ dữ liệu bài 1–25)", EXAMS.filter((e) => e.group === "N5"), "Mỗi đề gồm: 漢字読み, 表記, 文脈規定, 文法, 文の組み立て (★), 読解, 聴解 (2 đoạn hội thoại). Đề được sinh tự động từ dữ liệu bài học, cố định cho mỗi số đề; một số câu có thể lặp lại giữa các đề.")}
-        ${examGroup("20 đề N4 (từ dữ liệu bài 26–50)", EXAMS.filter((e) => e.group === "N4"), "Cấu trúc giống đề N5, độ khó theo phạm vi bài 26–50.")}`;
+        ${examGroup("20 đề N5 (giống đề thật: 3 phần thi)", EXAMS.filter((e) => e.group === "N5"), "文字・語彙 20 phút → 文法・読解 40 phút → 聴解 30 phút. Hết giờ phần nào thì phần đó tự nộp và chuyển sang phần sau. Phần nghe chỉ được nghe 1 lần như thi thật; câu 発話表現 và 即時応答 không in phương án, phải nghe máy đọc.")}
+        ${examGroup("20 đề N4 (giống đề thật: 3 phần thi)", EXAMS.filter((e) => e.group === "N4"), "文字・語彙 25 phút → 文法・読解 55 phút → 聴解 35 phút. Có thêm dạng 用法 (cách dùng từ).")}
+        ${examGroup("Đề ngắn theo mốc bài học", EXAMS.filter((e) => !e.group))}`;
       return;
     }
-    const all = ex.sections.flatMap((s, si) => s.items.map((it, ii) => ({ ...it, key: `${si}-${ii}` })));
+    const parts = examParts(ex);
+    const maxPlay = ex.parts ? 1 : 2;
+    const all = [];
+    parts.forEach((p, pi) => p.sections.forEach((s, si) => s.items.forEach((it, ii) => all.push({ ...it, key: `${pi}-${si}-${ii}`, part: pi }))));
     const orders = Object.fromEntries(all.map((it) => [it.key, shuffle(it.o.map((_, i) => i))]));
-    const answers = {}; const plays = {}; let n = 0;
-    const endAt = Date.now() + ex.minutes * 60000;
-    app.innerHTML = `<h1>${esc(ex.name)}</h1><div class="timer" id="timer"></div>
-      <p class="small muted">Phần nghe: mỗi câu được nghe tối đa 2 lần. Hết giờ bài sẽ tự nộp.</p>
-      ${ex.sections.map((s, si) => `<h2 class="jp">${esc(s.name)}</h2>${s.instruction ? `<p class="jp small muted">${esc(s.instruction)}</p>` : ""}
-        ${s.listen ? `<button class="btn" data-play="s${si}">🔊 Nghe đoạn hội thoại (còn 2 lần)</button><div class="jp small script-reveal" id="script-s${si}" hidden></div><div style="height:8px"></div>` : ""}
-        ${s.passage ? `<div class="passage">${esc(s.passage)}</div>` : ""}
-        <div class="stack">${s.items.map((it, ii) => { const k = `${si}-${ii}`; n++;
-          return `<div class="q card" data-key="${k}"><div class="qt"><b>${n}.</b> ${esc(it.q)}</div>
-            ${it.listen ? `<button class="btn sm" data-play="${k}">🔊 Nghe (còn 2 lần)</button><div style="height:8px"></div>` : ""}
-            <div class="opts">${orders[k].map((i) => `<button class="opt" data-i="${i}">${esc(it.o[i])}</button>`).join("")}</div><div class="exp"></div></div>`; }).join("")}</div>`).join("")}
-      <div class="row" style="margin-top:20px"><button class="btn primary" id="submit">Nộp bài</button><a href="#/exam">Thoát</a></div><div id="result"></div>`;
     const byKey = Object.fromEntries(all.map((it) => [it.key, it]));
+    const answers = {}; const plays = {}; let n = 0;
+    const NUM = ["いち", "に", "さん", "よん"];
+    // 【…】 trong đề = phần gạch chân như đề in.
+    const ul = (t) => esc(t).replace(/【(.+?)】/g, '<u class="ul">$1</u>');
+    const sectionHtml = (s, pi, si) => { const sk = `${pi}-${si}`;
+      return `<h3 class="jp sec-title">${esc(s.name)}</h3>${s.instruction ? `<p class="jp small muted">${esc(s.instruction)}</p>` : ""}
+        ${s.listen ? `<button class="btn" data-play="s${sk}">🔊 Nghe đoạn hội thoại (còn ${maxPlay} lần)</button><div class="jp small script-reveal" id="script-s${sk}" hidden></div><div style="height:8px"></div>` : ""}
+        ${s.passage ? `<div class="passage${s.pre ? " pre" : ""}">${esc(s.passage)}</div>` : ""}
+        <div class="stack">${s.items.map((it, ii) => { const k = `${sk}-${ii}`; n++;
+          return `<div class="q card" data-key="${k}">
+            ${it.passage ? `<div class="passage${it.pre ? " pre" : ""}">${esc(it.passage)}</div>` : ""}
+            <div class="qt jp"><b>${n}.</b> ${ul(it.q)}</div>${it.pic ? `<div class="pic small">🖼 ${esc(it.pic)}</div>` : ""}
+            ${it.listen || it.ask ? `<button class="btn sm" data-play="${k}">🔊 Nghe (còn ${maxPlay} lần)</button><div style="height:8px"></div>` : ""}
+            <div class="opts${it.spoken ? " spoken" : ""}">${orders[k].map((i, pos) => `<button class="opt" data-i="${i}">${it.spoken ? `<b>${pos + 1}</b><span class="jp" hidden>${esc(it.o[i])}</span>` : ul(it.o[i])}</button>`).join("")}</div><div class="exp"></div></div>`; }).join("")}</div>`; };
+    app.innerHTML = `<h1>${esc(ex.name)}</h1><div class="timer" id="timer"></div>
+      ${ex.parts ? `<ol class="part-steps" id="steps">${parts.map((p, pi) => `<li data-p="${pi}">${esc(p.name)} · ${p.minutes} phút</li>`).join("")}</ol>` : ""}
+      <p class="small muted">${ex.parts ? "Làm lần lượt từng phần. Phần nghe chỉ được nghe 1 lần; với câu không in phương án, hãy nghe máy đọc 1・2・3 rồi chọn số." : "Phần nghe: mỗi câu được nghe tối đa 2 lần. Hết giờ bài sẽ tự nộp."}</p>
+      ${parts.map((p, pi) => `<section class="exam-part" data-part="${pi}" ${pi ? "hidden" : ""}>${p.name ? `<h2 class="jp">${esc(p.name)}</h2>` : ""}
+        ${p.sections.map((s, si) => sectionHtml(s, pi, si)).join("")}
+        <div class="row" style="margin-top:20px"><button class="btn primary" data-submit="${pi}">${pi < parts.length - 1 ? "Nộp phần này và sang phần tiếp →" : "Nộp bài"}</button><a href="#/exam">Thoát</a></div></section>`).join("")}
+      <div id="result"></div>`;
     app.addEventListener("click", onE);
+    // Đọc câu nghe theo trình tự đề thật: câu hỏi → hội thoại → nhắc lại câu hỏi; câu không in phương án thì đọc 1・2・3.
+    function playLines(k) {
+      const L = [];
+      const say = (sp, t) => L.push({ text: t, pitch: sp === "F" ? 1.3 : 0.75, gender: sp });
+      if (k.startsWith("s")) { const [pi, si] = k.slice(1).split("-").map(Number); parts[pi].sections[si].listen.forEach(([sp, t]) => say(sp, t)); return L; }
+      const it = byKey[k];
+      if (it.ask) say("F", it.ask);
+      (it.listen || []).forEach(([sp, t]) => say(sp, t));
+      if (it.ask && !it.spoken) say("F", it.ask);
+      if (it.spoken) orders[k].forEach((i, pos) => say(it.voice || "M", `${NUM[pos]}。 ${it.o[i]}`));
+      return L;
+    }
+    let cur = 0, endAt = 0, finished = false;
+    const timedOut = [];
     function onE(e) {
       const pb = e.target.closest("[data-play]");
-      if (pb) { const k = pb.dataset.play; plays[k] = (plays[k] || 0) + 1; if (plays[k] > 2) return;
-        const lines = k.startsWith("s") ? ex.sections[+k.slice(1)].listen : byKey[k].listen;
-        TTS.queue(lines.map(([sp, t]) => ({ text: t, pitch: sp === "F" ? 1.3 : 0.75, gender: sp })));
-        pb.textContent = `🔊 Nghe${k.startsWith("s") ? " đoạn hội thoại" : ""} (còn ${2 - plays[k]} lần)`; if (plays[k] >= 2) pb.disabled = true; return; }
+      if (pb) { const k = pb.dataset.play; plays[k] = (plays[k] || 0) + 1; if (plays[k] > maxPlay && !finished) return;
+        TTS.queue(playLines(k));
+        if (!finished) { const left = maxPlay - plays[k]; pb.textContent = `🔊 Nghe${k.startsWith("s") ? " đoạn hội thoại" : ""} (còn ${left} lần)`; if (left <= 0) pb.disabled = true; }
+        return; }
+      const sb = e.target.closest("[data-submit]");
+      if (sb) { const pi = +sb.dataset.submit; const miss = all.filter((it) => it.part === pi && answers[it.key] == null).length;
+        if (miss && !confirm(`Phần này còn ${miss} câu chưa làm. Nộp?`)) return; endPart(pi, false); return; }
       const o = e.target.closest(".opt"); if (!o || o.disabled) return;
       const q = o.closest(".q"); answers[q.dataset.key] = +o.dataset.i;
       $$(".opt", q).forEach((x) => x.classList.toggle("picked", x === o));
     }
-    let finished = false;
-    const tick = () => { const left = Math.max(0, endAt - Date.now()); const m = Math.floor(left / 60000), s = Math.floor(left / 1000) % 60;
-      const t = $("#timer"); if (!t) return; t.textContent = `⏱ ${m}:${String(s).padStart(2, "0")}`; t.classList.toggle("warn", left < 120000);
-      if (left === 0) finish(true); };
+    const startPart = (pi) => { cur = pi; endAt = Date.now() + parts[pi].minutes * 60000;
+      $$(".exam-part").forEach((el) => (el.hidden = +el.dataset.part !== pi));
+      $$("#steps li").forEach((li) => { li.classList.toggle("on", +li.dataset.p === pi); li.classList.toggle("done", +li.dataset.p < pi); });
+      window.scrollTo(0, 0); };
+    function endPart(pi, auto) {
+      if (finished || pi !== cur) return; TTS.stop();
+      if (auto) timedOut.push(parts[pi].name || "bài");
+      $$(`.exam-part[data-part="${pi}"] .opt, .exam-part[data-part="${pi}"] [data-play], [data-submit="${pi}"]`).forEach((b) => (b.disabled = true));
+      if (pi < parts.length - 1) startPart(pi + 1); else finish();
+    }
+    const tick = () => { if (finished) return; const left = Math.max(0, endAt - Date.now()); const m = Math.floor(left / 60000), s = Math.floor(left / 1000) % 60;
+      const t = $("#timer"); if (!t) return; t.textContent = `⏱ ${parts[cur].name ? parts[cur].name.replace(/（.*$/, "") + " · " : ""}${m}:${String(s).padStart(2, "0")}`; t.classList.toggle("warn", left < 120000);
+      if (left === 0) endPart(cur, true); };
+    startPart(0);
     const timer = setInterval(tick, 500); tick();
-    function finish(auto) {
-      if (finished) return; finished = true; clearInterval(timer); TTS.stop();
-      let score = 0;
-      $$(".q[data-key]").forEach((q) => { const it = byKey[q.dataset.key]; const pick = answers[q.dataset.key]; const ok = pick === it.a; if (ok) score++;
-        $$(".opt", q).forEach((x) => { x.disabled = true; if (+x.dataset.i === it.a) x.classList.add("ok"); else if (+x.dataset.i === pick) x.classList.add("bad"); });
+    function finish() {
+      finished = true; clearInterval(timer); TTS.stop();
+      const per = parts.map(() => [0, 0]);
+      $$(".q[data-key]").forEach((q) => { const it = byKey[q.dataset.key]; const pick = answers[q.dataset.key]; const ok = pick === it.a; per[it.part][1]++; if (ok) per[it.part][0]++;
+        $$(".opt", q).forEach((x) => { x.disabled = true; const sp = x.querySelector("span[hidden]"); if (sp) sp.hidden = false;
+          if (+x.dataset.i === it.a) x.classList.add("ok"); else if (+x.dataset.i === pick) x.classList.add("bad"); });
         q.querySelector(".exp").innerHTML = `<div class="explain"><span class="${ok ? "result-ok" : "result-bad"}">${ok ? "✓ Đúng" : pick == null ? "— Bỏ trống" : "✗ Sai"}</span> · Đáp án: <b class="jp">${esc(it.o[it.a])}</b><br>${esc(it.ex)}
-          ${it.listen ? `<div style="margin-top:6px" class="jp small">${it.listen.map(([sp, t]) => `${sp === "F" ? "女" : "男"}：${esc(t)}`).join("<br>")}</div>` : ""}</div>`; });
-      ex.sections.forEach((s, si) => { const el = $("#script-s" + si); if (el && s.listen) { el.hidden = false;
-        el.innerHTML = `<div class="explain"><b>Lời thoại:</b><br>${(s.script || s.listen.map(([sp, t]) => `${sp === "F" ? "女" : "男"}：${t}`)).map(esc).join("<br>")}</div>`; } });
-      const btn = $("#submit"); btn.disabled = true; $$("[data-play]").forEach((b) => (b.disabled = true));
+          ${it.listen || it.ask ? `<div style="margin-top:6px" class="jp small">${it.ask ? `<b>${esc(it.ask)}</b><br>` : ""}${(it.listen || []).map(([sp, t]) => `${sp === "F" ? "女" : "男"}：${esc(t)}`).join("<br>")}</div>` : ""}</div>`; });
+      $$("[data-play]").forEach((b) => { b.disabled = false; b.textContent = "🔊 Nghe lại"; });
+      $$(".exam-part").forEach((el) => (el.hidden = false));
+      $$("[data-submit]").forEach((b) => (b.closest(".row").hidden = true));
+      $$("#steps li").forEach((li) => { li.classList.remove("on"); li.classList.add("done"); });
+      parts.forEach((p, pi) => p.sections.forEach((s, si) => { const el = $(`#script-s${pi}-${si}`); if (el && s.listen) { el.hidden = false;
+        el.innerHTML = `<div class="explain"><b>Lời thoại:</b><br>${(s.script || s.listen.map(([sp, t]) => `${sp === "F" ? "女" : "男"}：${t}`)).map(esc).join("<br>")}</div>`; } }));
+      const score = per.reduce((s, x) => s + x[0], 0);
       const best = store.get("exam:" + ex.id, 0); if (score > best) store.set("exam:" + ex.id, score);
+      let scaled = "";
+      if (ex.parts && parts.length === 3 && PASS[ex.group]) {
+        const s1 = Math.round(((per[0][0] + per[1][0]) / (per[0][1] + per[1][1])) * 120), s2 = Math.round((per[2][0] / per[2][1]) * 60), tot = s1 + s2;
+        const pass = tot >= PASS[ex.group] && s1 >= 38 && s2 >= 19;
+        scaled = `<table class="kinfo" style="margin:10px auto"><tr><td>言語知識（文字・語彙・文法）・読解</td><td><b>${s1}</b>/120 <span class="small muted">(sàn 38)</span></td></tr>
+          <tr><td>聴解</td><td><b>${s2}</b>/60 <span class="small muted">(sàn 19)</span></td></tr><tr><td>Tổng</td><td><b>${tot}</b>/180 <span class="small muted">(đỗ từ ${PASS[ex.group]})</span></td></tr></table>
+          <p class="${pass ? "result-ok" : "result-bad"}">${pass ? "✓ Ước tính: ĐẠT" : "✗ Ước tính: CHƯA ĐẠT"}</p>
+          <p class="small muted">Điểm quy đổi theo tỉ lệ câu đúng. JLPT thật dùng thang điểm chuẩn hóa nên đây chỉ để tham khảo.</p>`;
+      }
       $("#result").innerHTML = `<div class="card flash" style="margin-top:16px"><div class="score">${score}/${all.length}</div>
-        <p>${auto ? "Hết giờ — bài đã tự nộp. " : ""}Kỷ lục: ${Math.max(best, score)}/${all.length}. Xem giải thích dưới mỗi câu.</p><a class="btn" href="#/exam">Về danh sách đề</a></div>`;
+        ${parts.length > 1 ? `<p>${parts.map((p, pi) => `${esc(p.name)}: <b>${per[pi][0]}/${per[pi][1]}</b>`).join(" · ")}</p>` : ""}${scaled}
+        <p>${timedOut.length ? `Hết giờ ở: ${timedOut.map(esc).join(", ")} (đã tự nộp). ` : ""}Kỷ lục: ${Math.max(best, score)}/${all.length}. Xem giải thích dưới mỗi câu.</p><a class="btn" href="#/exam">Về danh sách đề</a></div>`;
       $("#result").scrollIntoView({ behavior: "smooth" });
     }
-    $("#submit").onclick = () => { const miss = all.length - Object.keys(answers).length;
-      if (miss && !confirm(`Còn ${miss} câu chưa làm. Nộp bài?`)) return; finish(false); };
     cleanup = () => { clearInterval(timer); app.removeEventListener("click", onE); };
   }
 
