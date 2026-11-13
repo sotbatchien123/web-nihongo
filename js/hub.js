@@ -181,4 +181,235 @@
           : `<p class="muted small">Chưa có chữ nào trong 400 Hán tự của web thuộc bộ này.</p>`}`);
     };
   }
+
+  // ---------- 3. Cặp tự động từ – tha động từ ----------
+  const HD = () => window.HUBDATA || {};
+  PAGES.jita = { group: "Từ vựng – ngữ pháp tổng hợp", title: "Cặp tự động từ – tha động từ", desc: "50 cặp N5–N4 (開く/開ける…), quy luật nhận biết, ví dụ が/を và luyện chọn.", render: renderJita };
+  function renderJita(ctx) {
+    const { app, esc, speakBtn, shuffle, mcq } = ctx;
+    const J = HD().jita || [];
+    app.innerHTML = `<h1>Cặp tự động từ – tha động từ</h1>
+      <p class="sub"><b>Tự động từ</b> (自動詞) diễn tả sự việc tự xảy ra, đi với <b class="jp">が</b>: <span class="jp">ドアが 開きます</span>.
+        <b>Tha động từ</b> (他動詞) có người tác động vào đối tượng, đi với <b class="jp">を</b>: <span class="jp">ドアを 開けます</span>.</p>
+      <div class="card"><b>Quy luật hay gặp</b> (chỉ là xu hướng, có ngoại lệ):
+        <ul><li>～aru (tự) / ～eru (tha): <span class="jp">上がる／上げる、始まる／始める、閉まる／閉める</span></li>
+          <li>～eru (tự) / ～su (tha): <span class="jp">壊れる／壊す、汚れる／汚す、消える／消す</span></li>
+          <li>～u (tự) / ～eru (tha): <span class="jp">開く／開ける、付く／付ける、届く／届ける</span></li>
+          <li>～reru (tự) / ～ru (tha): <span class="jp">割れる／割る、折れる／折る、切れる／切る</span></li></ul>
+        <b>Đi kèm thể ている / てある:</b> <span class="jp">電気が ついて います</span> (đèn đang sáng — trạng thái) · <span class="jp">電気が つけて あります</span> (đèn đã được ai đó bật sẵn).</div>
+      <div class="row" style="margin:12px 0"><button class="btn primary" id="jq">✎ Luyện chọn が / を</button></div><div id="jqz"></div>
+      <div class="vtable-wrap"><table class="vtable"><thead><tr><th>Tự động từ (が)</th><th>Tha động từ (を)</th><th>Ví dụ</th><th>Bài</th></tr></thead><tbody>
+        ${J.map(([a, ar, b, br, av, bv, n, l]) => `<tr><td><span class="jp">${esc(a)}</span><br><small class="jp muted">${esc(ar)}</small><br><small>${esc(av)}</small></td>
+          <td><span class="jp">${esc(b)}</span><br><small class="jp muted">${esc(br)}</small><br><small>${esc(bv)}</small></td>
+          <td class="jp">${esc(n)}が ${esc(a)} ${speakBtn(`${n}が ${a}`)}<br>${esc(n)}を ${esc(b)} ${speakBtn(`${n}を ${b}`)}</td><td>${l}</td></tr>`).join("")}</tbody></table></div>`;
+    app.querySelector("#jq").onclick = () => {
+      const root = app.querySelector("#jqz"); root.innerHTML = "";
+      shuffle(J).slice(0, 10).forEach(([a, , b, , av, bv, n], i) => {
+        const useJi = Math.random() < 0.5;
+        const q = { q: `${n}${useJi ? "が" : "を"} （　　）。`, o: [useJi ? a : b, useJi ? b : a], a: 0 };
+        q.o.push(...shuffle(J.filter((x) => x[0] !== a)).slice(0, 2).map((x) => (useJi ? x[0] : x[2])));
+        root.appendChild(mcq(q, i + 1, () => `${esc(n)}が ${esc(a)} (${esc(av)}) · ${esc(n)}を ${esc(b)} (${esc(bv)}). Trợ từ ${useJi ? "が → tự động từ" : "を → tha động từ"}.`));
+      });
+      root.scrollIntoView({ behavior: "smooth" });
+    };
+  }
+
+  // ---------- 4. Phó từ ----------
+  PAGES.fukushi = { group: "Từ vựng – ngữ pháp tổng hợp", title: "Phó từ thường gặp N5–N4", desc: "Tần suất, mức độ, thời gian, phỏng đoán, cách thức, từ nối — có ví dụ và luyện tập.", render: renderFukushi };
+  function renderFukushi(ctx) {
+    const { app, esc, speakBtn, shuffle, mcq } = ctx;
+    const F = HD().fukushi || {};
+    app.innerHTML = `<h1>Phó từ thường gặp</h1><p class="sub">Phó từ bổ nghĩa cho động từ, tính từ hoặc cả câu. Chú ý các phó từ <b>bắt buộc đi với phủ định</b> (あまり, ぜんぜん, めったに…).</p>
+      <nav class="toc card"><div class="toc-title">Nhóm</div><ol>${Object.keys(F).map((g, i) => `<li><a href="#" data-g="${i}">${esc(g)}</a></li>`).join("")}</ol></nav>
+      ${Object.entries(F).map(([g, list], i) => `<h2 id="fg-${i}">${esc(g)}</h2><div class="stack">${list.map(([w, m, ex, exv, note]) => `<div class="card">
+        <div class="row"><b class="jp" style="font-size:20px">${esc(w)}</b> — ${esc(m)}</div>
+        <div class="ex row" style="flex-wrap:nowrap">${speakBtn(ex)}<div><div class="jp">${esc(ex)}</div><div class="small muted">${esc(exv)}</div></div></div>
+        ${note ? `<div class="small" style="margin-top:4px">💡 ${esc(note)}</div>` : ""}</div>`).join("")}</div>`).join("")}
+      <h2>Luyện tập</h2><button class="btn primary" id="fq">✎ 10 câu điền phó từ</button><div id="fqz" class="stack" style="margin-top:10px"></div>`;
+    app.querySelectorAll("[data-g]").forEach((a) => (a.onclick = (e) => { e.preventDefault(); app.querySelector("#fg-" + a.dataset.g).scrollIntoView({ behavior: "smooth" }); }));
+    const all = Object.values(F).flat();
+    app.querySelector("#fq").onclick = () => {
+      const root = app.querySelector("#fqz"); root.innerHTML = "";
+      // Chỉ lấy câu mà phó từ xuất hiện nguyên dạng (bỏ phần “～ない”, “/”).
+      const items = all.map(([w, m, ex, exv]) => { const word = w.split(" / ")[0].replace(/～.*$/, ""); return ex.includes(word) ? { word, m, ex, exv } : null; }).filter(Boolean);
+      shuffle(items).slice(0, 10).forEach((it, i) => {
+        const wrong = shuffle(items.filter((x) => x.word !== it.word && !it.ex.includes(x.word))).slice(0, 3).map((x) => x.word);
+        root.appendChild(mcq({ q: `${it.ex.replace(it.word, "（　　）")}　(${it.exv})`, o: [it.word, ...wrong], a: 0 }, i + 1, () => `${esc(it.word)} = ${esc(it.m)}. ${esc(it.ex)}`));
+      });
+    };
+  }
+
+  // ---------- 5. So sánh ngữ pháp dễ nhầm ----------
+  PAGES.hikaku = { group: "Từ vựng – ngữ pháp tổng hợp", title: "So sánh ngữ pháp dễ nhầm", desc: "は/が, に/で, から/ので, ために/ように, と/ば/たら/なら, そうです… kèm mẹo phân biệt.", render: renderHikaku };
+  function renderHikaku(ctx) {
+    const { app, esc, speakBtn } = ctx;
+    const H = HD().hikaku || [];
+    app.innerHTML = `<h1>So sánh ngữ pháp dễ nhầm</h1><p class="sub">Tổng hợp các cặp mẫu câu hay bị nhầm trong đề N5–N4, gom từ nhiều bài Minna.</p>
+      <nav class="toc card"><div class="toc-title">Mục lục</div><ol>${H.map(([t], i) => `<li><a href="#" data-h="${i}" class="jp">${esc(t)}</a></li>`).join("")}</ol></nav>
+      ${H.map(([t, rows, tip], i) => `<section class="gbox" id="hk-${i}"><h3 class="jp">${i + 1}. ${esc(t)}</h3>
+        <div class="vtable-wrap"><table class="vtable"><thead><tr><th>Mẫu</th><th>Cách dùng</th><th>Ví dụ</th></tr></thead><tbody>
+        ${rows.map(([p, u, ex, exv]) => `<tr><td class="jp"><b>${esc(p)}</b></td><td>${esc(u)}</td><td><div class="row" style="flex-wrap:nowrap">${speakBtn(ex)}<div><div class="jp">${esc(ex)}</div><div class="small muted">${esc(exv)}</div></div></div></td></tr>`).join("")}
+        </tbody></table></div><div class="notes"><b>Mẹo phân biệt:</b> ${esc(tip)}</div></section>`).join("")}`;
+    app.querySelectorAll("[data-h]").forEach((a) => (a.onclick = (e) => { e.preventDefault(); ctx.flash(app.querySelector("#hk-" + a.dataset.h)); }));
+  }
+
+  // ---------- 6. Hội thoại tình huống + shadowing ----------
+  PAGES.kaiwa = { group: "Luyện nói – nghe", title: "Hội thoại tình huống & Shadowing", desc: "12 tình huống thường gặp; nghe cả đoạn, luyện nói đuổi (shadowing) từng câu.", render: renderKaiwa };
+  function renderKaiwa(ctx) {
+    const { app, esc, speakBtn, TTS, store } = ctx;
+    const K = HD().kaiwa || [];
+    const cur = Math.min(store.get("kaiwa:i", 0), K.length - 1);
+    const d = K[cur];
+    const people = [...new Set(d.lines.map((l) => l[0]))];
+    const voice = (p) => (people.indexOf(p) % 2 ? { gender: "M", pitch: 0.8 } : { gender: "F", pitch: 1.25 });
+    app.innerHTML = `<h1>Hội thoại tình huống</h1>
+      <p class="sub"><b>Shadowing</b>: nghe một câu → máy dừng → bạn nói lại y hệt (cả ngữ điệu) → câu tiếp theo. Mỗi ngày 10–15 phút giúp nghe và nói tự nhiên hơn.</p>
+      <div class="row" style="margin-bottom:10px"><select id="ks">${K.map((k, i) => `<option value="${i}" ${i === cur ? "selected" : ""}>${i + 1}. ${esc(k.title)} — ${esc(k.vi)}</option>`).join("")}</select></div>
+      <div class="card stack"><h3 class="jp" style="font-size:22px">${esc(d.title)} <span class="muted small">— ${esc(d.vi)}</span></h3>
+        <div class="player"><button class="btn primary" id="kplay">▶ Nghe cả đoạn</button><button class="btn" id="kshadow">🗣 Shadowing</button>
+          <label class="small">Thời gian nói lại <select id="kgap"><option value="1">ngắn</option><option value="1.5" selected>vừa</option><option value="2.2">dài</option></select></label>
+          <label class="small"><input type="checkbox" id="khide"> Ẩn chữ Nhật</label><label class="small"><input type="checkbox" id="kvi" checked> Hiện nghĩa</label></div>
+        <div class="script" id="kscript">${d.lines.map(([p, jp, vi], i) => `<div class="line" id="k-${i}"><span class="sp">${esc(p)}</span>
+          <div style="flex:1"><div class="jp kj">${esc(jp)}</div><div class="vi small muted">${esc(vi)}</div></div>${speakBtn(jp)}</div>`).join("")}</div>
+        <div class="notice"><b>Mẫu câu chính:</b> ${esc(d.note)}</div><div id="kstat" class="small muted"></div></div>`;
+    const sc = app.querySelector("#kscript");
+    app.querySelector("#ks").onchange = (e) => { store.set("kaiwa:i", +e.target.value); renderKaiwa(ctx); };
+    app.querySelector("#khide").onchange = (e) => sc.querySelectorAll(".kj").forEach((x) => (x.style.visibility = e.target.checked ? "hidden" : ""));
+    app.querySelector("#kvi").onchange = (e) => sc.querySelectorAll(".vi").forEach((x) => (x.hidden = !e.target.checked));
+    const hl = (i) => sc.querySelectorAll(".line").forEach((x, k) => x.classList.toggle("playing", k === i));
+    let stop = null, timer = null;
+    const halt = () => { if (stop) stop(); stop = null; clearTimeout(timer); TTS.stop(); hl(-1); app.querySelector("#kstat").textContent = ""; };
+    app.querySelector("#kplay").onclick = () => { halt(); stop = TTS.queue(d.lines.map(([p, jp]) => ({ text: jp, ...voice(p) })), hl, () => (stop = null)); };
+    app.querySelector("#kshadow").onclick = () => {
+      halt(); let i = 0; const gap = +app.querySelector("#kgap").value;
+      const next = () => {
+        if (i >= d.lines.length) { hl(-1); app.querySelector("#kstat").textContent = "✓ Xong một lượt. Thử lại với “Ẩn chữ Nhật” để luyện nghe thuần."; return; }
+        const [p, jp] = d.lines[i]; hl(i); app.querySelector("#kstat").textContent = `Câu ${i + 1}/${d.lines.length}: nghe…`;
+        const t0 = Date.now();
+        TTS.speak(jp, { ...voice(p), onend: () => {
+          // Dừng để người học nói lại: dài bằng thời lượng câu × hệ số.
+          const wait = Math.max(1500, (Date.now() - t0) * gap);
+          app.querySelector("#kstat").textContent = `Câu ${i + 1}/${d.lines.length}: 🗣 nói lại…`;
+          timer = setTimeout(() => { i++; next(); }, wait); } });
+      };
+      next();
+    };
+    ctx.setCleanup(halt);
+  }
+
+  // ---------- 7. Luyện dịch Việt → Nhật ----------
+  PAGES.honyaku = { group: "Luyện nói – nghe", title: "Luyện dịch Việt → Nhật", desc: "Đọc câu tiếng Việt, ghép các cụm từ tiếng Nhật đúng thứ tự (câu lấy từ ví dụ của bài học).", render: renderHonyaku };
+  function renderHonyaku(ctx) {
+    const { app, esc, shuffle, store, TTS, speakBtn } = ctx;
+    const L = window.LESSONS || {};
+    const ids = Object.keys(L).map(Number).sort((a, b) => a - b);
+    const st = store.get("honyaku", { from: 1, to: 10 });
+    app.innerHTML = `<h1>Luyện dịch Việt → Nhật</h1><p class="sub">Bấm các cụm từ theo đúng thứ tự để tạo câu tiếng Nhật. Bấm lại vào cụm đã chọn để bỏ. Câu lấy từ ví dụ từ vựng và ngữ pháp của các bài bạn chọn.</p>
+      <div class="row" style="margin-bottom:12px">Từ bài <select id="hf">${ids.map((i) => `<option ${i === st.from ? "selected" : ""}>${i}</option>`).join("")}</select>
+        đến bài <select id="ht">${ids.map((i) => `<option ${i === st.to ? "selected" : ""}>${i}</option>`).join("")}</select></div><div id="hz"></div>`;
+    const reload = () => { st.from = +app.querySelector("#hf").value; st.to = Math.max(st.from, +app.querySelector("#ht").value); store.set("honyaku", st); renderHonyaku(ctx); };
+    app.querySelector("#hf").onchange = reload; app.querySelector("#ht").onchange = reload;
+    const pool = ids.filter((i) => i >= st.from && i <= st.to).flatMap((i) => [
+      ...L[i].vocab.flatMap((v) => v.ex || []), ...L[i].grammar.flatMap((g) => g.usage.flatMap((u) => u.ex))]).map(([jp, vi]) => ({ jp, vi }))
+      .filter((x) => { const n = x.jp.replace(/[。？！]$/, "").split(/\s+/).length; return n >= 3 && n <= 7 && !/[「」（）()／/―～…]/.test(x.jp); });
+    const list = shuffle(pool).slice(0, 10);
+    let i = 0, score = 0;
+    const root = app.querySelector("#hz");
+    const step = () => {
+      if (!list.length) { root.innerHTML = `<p class="muted">Không có câu phù hợp trong phạm vi này.</p>`; return; }
+      if (i >= list.length) { root.innerHTML = `<div class="card flash"><div class="score">${score}/${list.length}</div><button class="btn primary" id="hagain">Lượt mới</button></div>`; root.querySelector("#hagain").onclick = () => renderHonyaku(ctx); return; }
+      const it = list[i]; const end = (it.jp.match(/[。？！]$/) || ["。"])[0];
+      const chunks = it.jp.replace(/[。？！]$/, "").split(/\s+/);
+      let picked = [];
+      const order = shuffle(chunks.map((c, k) => k));
+      root.innerHTML = `<div class="progress"><i style="width:${(i / list.length) * 100}%"></i></div><div class="card flash">
+        <div class="small muted">Câu ${i + 1}/${list.length} · điểm ${score}</div><div style="font-size:20px;margin:6px 0 12px">${esc(it.vi)}</div>
+        <div class="answer jp" id="hans"></div><div class="chips" id="hch">${order.map((k) => `<button class="chip jp" data-k="${k}">${esc(chunks[k])}</button>`).join("")}</div>
+        <div class="row" style="justify-content:center;margin-top:10px"><button class="btn primary" id="hok">Kiểm tra</button><button class="btn" id="hskip">Xem đáp án</button></div><div id="hres"></div></div>`;
+      const draw = () => { root.querySelector("#hans").innerHTML = picked.map((k) => `<button class="chip jp on" data-k="${k}">${esc(chunks[k])}</button>`).join("") + (picked.length ? `<span class="jp">${end}</span>` : `<span class="muted small">Chọn cụm từ bên dưới…</span>`);
+        root.querySelectorAll("#hch .chip").forEach((b) => (b.disabled = picked.includes(+b.dataset.k))); };
+      draw();
+      root.querySelector(".card").onclick = (e) => { const b = e.target.closest(".chip"); if (!b || b.disabled) return; const k = +b.dataset.k;
+        picked = b.classList.contains("on") ? picked.filter((x) => x !== k) : [...picked, k]; draw(); };
+      const done = (ok, shown) => { if (ok) score++;
+        root.querySelector("#hres").innerHTML = `<p class="${ok ? "result-ok" : "result-bad"}">${ok ? "✓ Chính xác" : shown ? "Đáp án:" : "✗ Chưa đúng — đáp án:"}</p>
+          <div class="row" style="justify-content:center"><span class="jp" style="font-size:20px">${esc(it.jp)}</span>${speakBtn(it.jp)}</div>
+          ${!ok && !shown ? `<p class="small muted">Một số câu có thể đổi vị trí cụm thời gian/chủ đề mà vẫn đúng; web chỉ so với câu mẫu.</p>` : ""}<button class="btn primary" id="hnext">Tiếp →</button>`;
+        root.querySelector("#hok").disabled = true; root.querySelector("#hskip").disabled = true; TTS.stop(); TTS.speak(it.jp);
+        root.querySelector("#hnext").onclick = () => { i++; step(); }; };
+      root.querySelector("#hok").onclick = () => { const got = picked.map((k) => chunks[k]).join(" "); done(got === chunks.join(" ") && picked.length === chunks.length, false); };
+      root.querySelector("#hskip").onclick = () => done(false, true);
+    };
+    step();
+  }
+
+  // ---------- 8. Từ vựng theo chủ đề / cấp độ ----------
+  // Chủ đề gán tự động theo từ khóa trong nghĩa tiếng Việt (gần đúng); từ không khớp xếp vào "Khác".
+  // So khớp nguyên từ (không khớp "xe" trong "xem", "mỹ" trong "mỹ thuật").
+  const kw = (list) => new RegExp(`(?<!\\p{L})(?:${list.join("|")})(?!\\p{L})`, "iu");
+  const TOPICS = [
+    ["Chào hỏi – giao tiếp", null],
+    ["Quốc gia – ngôn ngữ", kw(["tiếng [\\p{L} ]+", "nước \\)", "\\(nước", "việt nam", "nhật bản", "trung quốc", "hàn quốc", "mỹ(?! thuật)", "mexico", "anh \\(nước\\)", "pháp", "đức", "ý \\(nước\\)", "thái lan", "ấn độ", "indonesia", "brazil", "thụy sĩ", "bắc kinh", "bangkok", "london", "los angeles", "người nước ngoài", "quốc tịch", "đất nước"])],
+    ["Gia đình – con người", kw(["bố", "mẹ", "cha", "anh trai", "chị", "chị gái", "em trai", "em gái", "ông", "bà", "vợ", "chồng", "con", "con cái", "gia đình", "họ hàng", "cháu", "chú", "dì", "bạn", "bạn bè", "người lớn", "trẻ em", "đàn ông", "phụ nữ", "em bé", "anh chị em"])],
+    ["Thời gian", kw(["giờ", "phút", "giây", "ngày", "tháng", "năm", "tuần", "buổi", "sáng", "trưa", "chiều", "tối", "đêm", "hôm nay", "hôm qua", "hôm kia", "ngày mai", "thứ hai", "thứ ba", "thứ tư", "thứ năm", "thứ sáu", "thứ bảy", "chủ nhật", "mùa", "lúc", "sớm", "muộn", "hiện tại", "tương lai", "quá khứ", "rưỡi"])],
+    ["Ăn uống", kw(["ăn", "uống", "cơm", "bánh", "bánh mì", "thịt", "cá", "rau", "hoa quả", "quả", "trà", "cà phê", "rượu", "bia", "sữa", "món", "nấu", "đũa", "đĩa", "bát", "cốc", "trứng", "táo", "cam", "đồ ăn", "thức ăn", "gia vị", "muối", "ngọt", "cay", "đắng", "nước ép", "sô-cô-la", "nhà hàng", "nước", "thìa", "dao", "dĩa", "nĩa"])],
+    ["Nơi chốn – giao thông", kw(["ga", "nhà ga", "tàu", "tàu điện", "xe", "xe buýt", "xe ô tô", "ô tô", "đường", "sân bay", "bến", "cầu", "ngã tư", "thành phố", "thị trấn", "làng", "công viên", "bệnh viện", "trường", "trường học", "ngân hàng", "bưu điện", "cửa hàng", "siêu thị", "khách sạn", "thư viện", "phòng", "phòng học", "tòa nhà", "bãi", "quầy", "lối", "tầng", "nhà", "nhà vệ sinh", "bảo tàng", "cầu thang", "thang máy", "thang cuốn", "taxi", "máy bay", "thuyền", "cửa", "đền", "chùa", "sân", "bể bơi", "tầng hầm", "vườn", "sảnh", "đại sảnh", "thành", "địa danh"])],
+    ["Học tập – công việc", kw(["học", "giáo viên", "thầy", "sinh viên", "học sinh", "bài", "thi", "kỳ thi", "công ty", "làm việc", "công việc", "họp", "cuộc họp", "nhân viên", "giám đốc", "trưởng phòng", "sách", "vở", "bút", "từ điển", "lớp", "báo cáo", "tài liệu", "nghề", "lương", "kỹ sư", "nhà nghiên cứu", "nghiên cứu", "giáo sư", "chuyên môn", "văn phòng", "hội nghị", "giấy tờ", "y tá", "danh thiếp"])],
+    ["Thiên nhiên – thời tiết", kw(["trời", "mưa", "tuyết", "gió", "nắng", "núi", "sông", "biển", "hoa", "cây", "mây", "nóng", "lạnh", "ấm", "mát", "thời tiết", "động vật", "chó", "mèo", "chim", "khỉ", "bão", "động đất", "ngựa", "hồ"])],
+    ["Cơ thể – sức khỏe", kw(["đầu", "mắt", "tai", "mũi", "miệng", "tay", "chân", "răng", "bụng", "lưng", "họng", "bệnh", "ốm", "đau", "thuốc", "sốt", "bị cảm", "cảm cúm", "khỏe", "bác sĩ", "bị thương", "cơ thể", "tóc"])],
+    ["Mua sắm – đồ dùng", kw(["áo", "áo len", "quần", "giày", "mũ", "túi", "ô", "dù", "đồng hồ", "tiền", "giá", "mua", "bán", "rẻ", "đắt", "máy", "máy tính", "điện thoại", "ti vi", "tivi", "ảnh", "chìa khóa", "kính", "cặp", "ví", "đồ dùng", "bàn", "ghế", "giường", "tạp chí", "thẻ", "radio", "đài radio", "cà vạt", "quà", "báo", "thư", "tem", "bưu thiếp", "vé", "xe đạp", "tủ", "hộp", "giấy", "kéo", "chăn"])],
+    ["Sở thích – giải trí", kw(["phim", "nhạc", "âm nhạc", "thể thao", "bơi", "bóng đá", "bóng chày", "du lịch", "chơi", "hát", "tranh", "trò chơi", "sở thích", "lễ hội", "tiệc", "câu cá", "leo núi", "đàn", "vẽ", "nhảy", "mỹ thuật", "sinh nhật", "video", "băng"])]
+  ];
+  const topicOf = (v) => {
+    if (/cụm chào|thán từ/.test(v.t) || (/^cụm/.test(v.t) && /(chào|cảm ơn|xin lỗi|xin|mời|tạm biệt|rất vui|vâng)/i.test(v.vi))) return TOPICS[0][0];
+    const hit = TOPICS.slice(1).find(([, re]) => re.test(v.vi));
+    if (hit) return hit[0];
+    // Không khớp chủ đề nào: xếp theo loại từ để vẫn dễ học theo nhóm.
+    const k = kindOf(v.t);
+    return k === "Động từ" ? "Hành động thường ngày" : k === "Tính từ" ? "Tính chất – cảm xúc" : /phó từ|liên từ|từ để hỏi|trợ từ|đại từ|chỉ định|hậu tố|tiền tố|số từ/.test(v.t) ? "Từ chức năng – từ để hỏi" : "Khác";
+  };
+  const kindOf = (t) => /^danh từ|đại từ|số từ/.test(t) ? "Danh từ" : /động từ/.test(t) ? "Động từ" : /^tính từ/.test(t) ? "Tính từ" : /phó từ/.test(t) ? "Phó từ" : /^cụm/.test(t) ? "Cụm từ" : "Khác";
+  PAGES.chude = { group: "Từ vựng – ngữ pháp tổng hợp", title: "Từ vựng theo chủ đề & cấp độ", desc: "Toàn bộ 1.970 từ của 50 bài, lọc theo cấp N5/N4, chủ đề, loại từ.", render: renderChude };
+  function renderChude(ctx) {
+    const { app, esc, speakBtn, store } = ctx;
+    const st = store.get("chude", { lv: "", tp: "", kd: "", q: "" });
+    const all = Object.values(window.LESSONS || {}).flatMap((L) => L.vocab.map((v) => ({ ...v, id: L.id, lv: L.id <= 25 ? "N5" : "N4", tp: topicOf(v), kd: kindOf(v.t) })));
+    const names = [...TOPICS.map((t) => t[0]), "Hành động thường ngày", "Tính chất – cảm xúc", "Từ chức năng – từ để hỏi", "Khác"];
+    app.innerHTML = `<h1>Từ vựng theo chủ đề & cấp độ</h1>
+      <p class="sub">Cấp độ theo giáo trình: bài 1–25 ≈ <b>N5</b>, bài 26–50 ≈ <b>N4</b> (JLPT không công bố danh sách từ chính thức nên đây là mức tương đối). Chủ đề được xếp tự động theo nghĩa, có thể chưa chuẩn với một số từ.</p>
+      <div class="row" style="margin-bottom:10px">
+        <select id="clv"><option value="">N5 + N4</option><option value="N5" ${st.lv === "N5" ? "selected" : ""}>N5 (bài 1–25)</option><option value="N4" ${st.lv === "N4" ? "selected" : ""}>N4 (bài 26–50)</option></select>
+        <select id="ctp"><option value="">Mọi chủ đề</option>${names.map((n) => `<option ${st.tp === n ? "selected" : ""}>${esc(n)}</option>`).join("")}</select>
+        <select id="ckd"><option value="">Mọi loại từ</option>${["Danh từ", "Động từ", "Tính từ", "Phó từ", "Cụm từ", "Khác"].map((n) => `<option ${st.kd === n ? "selected" : ""}>${n}</option>`).join("")}</select>
+        <input id="cq" type="search" placeholder="Tìm (kana, kanji, nghĩa)" value="${esc(st.q)}" style="flex:1;min-width:160px"></div>
+      <p class="small muted" id="ccount"></p>
+      <div class="vtable-wrap"><table class="vtable"><thead><tr><th>Từ</th><th>Cách đọc</th><th>Nghĩa</th><th>Loại</th><th>Bài</th><th></th></tr></thead><tbody id="cbody"></tbody></table></div>`;
+    const draw = () => {
+      st.lv = app.querySelector("#clv").value; st.tp = app.querySelector("#ctp").value; st.kd = app.querySelector("#ckd").value; st.q = app.querySelector("#cq").value.trim();
+      store.set("chude", st);
+      const q = st.q.toLowerCase();
+      const list = all.filter((v) => (!st.lv || v.lv === st.lv) && (!st.tp || v.tp === st.tp) && (!st.kd || v.kd === st.kd) && (!q || v.w.includes(q) || v.r.includes(q) || v.vi.toLowerCase().includes(q)));
+      app.querySelector("#ccount").textContent = `${list.length} từ`;
+      app.querySelector("#cbody").innerHTML = list.slice(0, 400).map((v) => `<tr><td class="jp">${esc(v.w)}</td><td class="jp">${esc(v.r)}</td><td>${esc(v.vi)}</td><td class="small">${esc(v.t)}</td>
+        <td><a href="#/l/${v.id}/vocab">${v.id}</a></td><td>${speakBtn(v.r)}</td></tr>`).join("") + (list.length > 400 ? `<tr><td colspan="6" class="muted small">… còn ${list.length - 400} từ — lọc thêm để xem.</td></tr>` : "");
+    };
+    ["#clv", "#ctp", "#ckd"].forEach((s) => (app.querySelector(s).onchange = draw));
+    app.querySelector("#cq").oninput = draw;
+    draw();
+  }
+  Hub.topicOf = topicOf;
+
+  // ---------- 9. Tài liệu chính thức miễn phí (chỉ dẫn link về trang gốc) ----------
+  const FREE = [
+    ["いろどり 生活の日本語 (Irodori)", "https://www.irodori.jpf.go.jp/", "Giáo trình hội thoại sinh hoạt miễn phí của Japan Foundation, có file nghe giọng thật (trình độ A1–A2, tương đương N5–N4)."],
+    ["NHK WORLD-JAPAN – Easy Japanese (tiếng Việt)", "https://www.nhk.or.jp/lesson/vi/", "48 bài hội thoại ngắn có giọng thật, giải thích bằng tiếng Việt."],
+    ["Marugoto Plus", "https://marugotoweb.jp/", "Video, hội thoại theo chủ đề của Japan Foundation."],
+    ["Erin's Challenge (エリンが挑戦！)", "https://www.erin.jpf.go.jp/", "Video tình huống đời sống học đường, có phụ đề."],
+    ["JLPT – Đề mẫu chính thức", "https://www.jlpt.jp/e/samples/forlearners.html", "Đề mẫu và file nghe chính thức N1–N5 do ban tổ chức công bố."]
+  ];
+  PAGES.free = { group: "Luyện nói – nghe", title: "Tài liệu chính thức miễn phí", desc: "Giọng người Nhật thật: Irodori, NHK, Marugoto, Erin, đề mẫu JLPT — dẫn về trang gốc.", render: ({ app, esc }) => {
+    app.innerHTML = `<h1>Tài liệu chính thức miễn phí</h1><p class="sub">Các nguồn dưới đây do tổ chức chính thức phát hành miễn phí, có <b>giọng người Nhật thật</b>. Web chỉ dẫn link về trang gốc (không sao chép nội dung) để đúng điều khoản sử dụng của họ.</p>
+      <div class="stack">${FREE.map(([n, u, d]) => `<a class="card exam-tile" href="${u}" target="_blank" rel="noopener"><b>${esc(n)}</b><span class="small">${esc(d)}</span><span class="small muted">${esc(u)}</span></a>`).join("")}</div>
+      <p class="small muted" style="margin-top:12px">Gợi ý: học xong bài N trên web → nghe bài hội thoại cùng chủ đề trên Irodori/NHK → luyện shadowing ở mục “Hội thoại tình huống”.</p>`;
+  } };
 })();

@@ -83,6 +83,17 @@
   const speakBtn = (text) => `<button class="speak" data-say="${esc(text)}" title="Nghe" aria-label="Nghe">🔊</button>`;
   document.addEventListener("click", (e) => { const b = e.target.closest("[data-say]"); if (b) { e.stopPropagation(); TTS.stop(); TTS.speak(b.dataset.say); } });
 
+  // ---------- IndexedDB nhỏ để giữ file nghe người dùng tự nạp ----------
+  const idb = {
+    db: null,
+    open() { if (this.db) return this.db; this.db = new Promise((res, rej) => { const r = indexedDB.open("n50", 1);
+      r.onupgradeneeded = () => r.result.createObjectStore("audio"); r.onsuccess = () => res(r.result); r.onerror = () => rej(r.error); }); return this.db; },
+    async run(mode, fn) { const db = await this.open(); return new Promise((res, rej) => { const tx = db.transaction("audio", mode); const q = fn(tx.objectStore("audio")); tx.oncomplete = () => res(q && q.result); tx.onerror = () => rej(tx.error); }); },
+    get(k) { return this.run("readonly", (s) => s.get(k)); },
+    set(k, v) { return this.run("readwrite", (s) => s.put(v, k)); },
+    del(k) { return this.run("readwrite", (s) => s.delete(k)); }
+  };
+
   // ---------- Modal ----------
   const modal = $("#modal");
   function openModal(html) { $("#modalBody").innerHTML = html; modal.hidden = false; }
@@ -268,6 +279,10 @@
         <p class="small muted">Gợi ý: nghe 1–2 lần, làm bài tập trước, sau đó mới mở lời thoại để kiểm tra.</p>
         <div class="script blur" id="script">${S.script.map((l, i) => `<div class="line" id="l-${i}"><span class="sp">${esc(S.speakers[l.sp].name)}</span>
           <div style="flex:1"><div class="jp">${esc(l.jp)}</div><div class="vi" hidden>${esc(l.vi)}</div></div>${speakBtn(l.jp)}</div>`).join("")}</div></div>
+      <div class="card stack" id="myaudio"><b>🎧 File nghe của riêng bạn (tùy chọn)</b>
+        <p class="small muted" style="margin:0">Nếu bạn có file nghe của giáo trình (mp3, m4a…), chọn ở đây để nghe bằng trình phát thật (tua, chỉnh tốc độ). File chỉ lưu trong trình duyệt trên máy này, không tải lên mạng. Lời thoại và bài tập ở trên là bản tự soạn nên có thể khác nội dung file của bạn.</p>
+        <div class="row"><input type="file" id="afile" accept="audio/*" multiple><button class="btn sm" id="adel" hidden>Xóa file của bài này</button></div>
+        <div id="alist" class="stack"></div></div>
       <h2>Bài tập nghe</h2><div id="qs" class="stack"></div>`;
     let stop = null;
     const sc = $("#script");
@@ -280,7 +295,22 @@
     $("#rate").onchange = (e) => { TTS.rate = +e.target.value; store.set("rate", TTS.rate); };
     $("#tgScript").onclick = (e) => { sc.classList.toggle("blur"); e.target.textContent = sc.classList.contains("blur") ? "Hiện lời thoại" : "Ẩn lời thoại"; };
     $("#tgViL").onclick = (e) => { const v = $$(".vi", sc); const h = !v[0].hidden; v.forEach((x) => (x.hidden = h)); e.target.textContent = h ? "Hiện nghĩa" : "Ẩn nghĩa"; };
-    cleanup = () => stop && stop();
+    const urls = [];
+    cleanup = () => { stop && stop(); urls.forEach((u) => URL.revokeObjectURL(u)); };
+    // File nghe người dùng tự nạp: lưu trong IndexedDB theo bài; trang vẫn chạy bình thường khi trình duyệt chặn lưu trữ.
+    const showAudio = (files) => {
+      urls.forEach((u) => URL.revokeObjectURL(u)); urls.length = 0;
+      $("#adel").hidden = !files.length;
+      $("#alist").innerHTML = files.map((f, i) => { const u = URL.createObjectURL(f.blob); urls.push(u);
+        return `<div><div class="small">${i + 1}. ${esc(f.name)}</div><audio controls preload="none" src="${u}" style="width:100%"></audio></div>`; }).join("");
+    };
+    idb.get("lesson:" + L.id).then((f) => showAudio(f || [])).catch(() => {});
+    $("#afile").onchange = async (e) => {
+      const files = [...e.target.files].sort((a, b) => a.name.localeCompare(b.name, undefined, { numeric: true })).map((f) => ({ name: f.name, blob: f }));
+      try { await idb.set("lesson:" + L.id, files); } catch (err) { alert("Trình duyệt không cho lưu file; file chỉ phát được đến khi tải lại trang."); }
+      showAudio(files);
+    };
+    $("#adel").onclick = async () => { try { await idb.del("lesson:" + L.id); } catch (err) { /* bỏ qua */ } $("#afile").value = ""; showAudio([]); };
     const qs = $("#qs");
     S.questions.forEach((q, i) => qs.appendChild(mcq(q, i + 1, (q) => {
       const l = S.script[q.ev[0]];

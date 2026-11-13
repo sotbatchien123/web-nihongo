@@ -221,3 +221,10 @@ rt { font-size: 11px; color: var(--muted); }
 .pic { margin: 4px 0 8px; padding: 6px 10px; border-left: 3px solid var(--accent); background: var(--surface-2); border-radius: 6px; }
 .passage.pre { white-space: pre; overflow-x: auto; font-size: 15px; line-height: 1.7; }
 .ul { text-decoration: underline; text-underline-offset: 4px; text-decoration-thickness: 2px; }
+
+/* Luyện dịch: ghép cụm từ */
+.chips, .answer { display: flex; flex-wrap: wrap; gap: 6px; justify-content: center; min-height: 44px; }
+.answer { border-bottom: 2px dashed var(--line); padding-bottom: 8px; margin-bottom: 10px; align-items: center; }
+.chip { border: 1px solid var(--line); background: var(--surface); color: var(--ink); border-radius: 10px; padding: 6px 12px; font-size: 18px; cursor: pointer; }
+.chip.on { background: var(--accent-soft); border-color: var(--accent); }
+.chip:disabled { opacity: .3; cursor: default; }
