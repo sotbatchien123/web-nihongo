@@ -15,10 +15,16 @@
 
 - Nghe thử phần nghe bằng tai, bổ sung `js/yomi.js` khi thấy đọc sai.
 - Rà soát chất lượng nội dung (người dạy tiếng Nhật đọc duyệt), nhất là bài 41–50 (kính ngữ).
-- Giảm lặp câu giữa 40 đề sinh tự động (文脈規定 ~35%, ★ 22–60%): cần thêm câu ví dụ có ngữ cảnh chặt vào dữ liệu bài, hoặc thêm bài nghe (hiện 25 bài nghe/cấp cho 40 lượt).
-- Đề sinh tự động chưa có các dạng 言い換え類義, 発話表現, 即時応答, 用法 (N4).
+- Giảm lặp câu giữa 40 đề (task T025 trong `specs/001-baseline-web-nihongo/tasks.md`): bổ sung ngân hàng câu `data/bank_n5.js`, `data/bank_n4.js` — nên làm qua spec mới `002-…`.
+- Đề thi N3–N1 (người dùng hẹn làm sau) — làm qua `/speckit-specify`.
+- Từ nay mọi tính năng mới đi theo quy trình Spec Kit (xem README, constitution).
 
 ## Nhật ký phiên
+
+### 2026-11-13 — Áp dụng Spec Kit + rà soát toàn bộ
+- Cài sẵn `specify` 1.4.0 trên máy; `specify init --here --integration claude` → `.specify/` (mẫu, script PowerShell) và 9 skill `.claude/skills/speckit-*`. Sửa `.gitignore` để theo dõi `.claude/skills/` (vẫn bỏ qua phần còn lại của `.claude/`). Script `.ps1` bị chặn khi gọi từ bash (execution policy) — chạy bằng công cụ PowerShell, không đổi cài đặt hệ thống.
+- Viết constitution v1.0.0 (6 nguyên tắc) và đặc tả nền `specs/001-baseline-web-nihongo/` (spec 8 user story, 16 FR, 5 SC; plan có Constitution Check; tasks Phase 1–9 hồi tố).
+- Rà soát kiểu `/speckit-converge`: kiểm tra bằng chứng thật — quét ngân hàng N5 tìm ngữ pháp N4, thử 21 trang ở 375px (đều không tràn), đối chiếu FR với mã. Phát hiện F1 (CRITICAL): 5 chỗ dùng thể khả năng (bài 27) trong ngân hàng N5 → đã sửa; F2: validate thêm luật chặn ngữ pháp N4 trong ngân hàng N5 (đã thử bằng cách cố tình đưa lỗi vào bản sao → bắt đúng); F4: bỏ phương án nhiễu ので; F5: README/GHI_NHO. Còn mở: T025 (tỉ lệ lặp), T026 (nghe thử bằng tai).
 
 ### 2026-11-13 — Mở rộng từ tài liệu Drive (đợt 1: chữ cái + bộ thủ)
 - Người dùng gửi 7 thư mục Drive (N5–N1, Kaiwa, Giáo trình N4). Đã liệt kê bằng `embeddedfolderview`, tải tài liệu (PDF/xlsx/pptx, bỏ mp3/video/zip) về `_tailieu/` — **đã thêm vào .gitignore, không được đưa lên Git** (sách thương mại, đề JLPT thật có bản quyền). Chỉ đọc để tham khảo kiến thức/format, không chép câu chữ.

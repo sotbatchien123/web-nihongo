@@ -1,5 +1,6 @@
 # Cấu hình cục bộ của Claude / trình soạn thảo
-.claude/
+.claude/*
+!.claude/skills/
 .vscode/
 .idea/
 

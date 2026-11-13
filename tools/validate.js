@@ -168,6 +168,24 @@ for (const lv of ["N5", "N4"]) {
   Object.entries(all).forEach(([nm, arr]) => { const p = Math.round(100 * (1 - new Set(arr).size / arr.length)); if (p > 0) warn(`đề ${lv}`, `${nm}: ${p}% câu lặp giữa các đề`); });
 }
 
+// ---------- Phạm vi ngữ pháp của ngân hàng câu N5 (constitution II) ----------
+// Các mẫu thuộc bài 26 trở đi (N4) không được xuất hiện trong ngân hàng N5. Danh sách theo dấu hiệu chữ,
+// tránh khớp nhầm (vd. だれのです, そうですか là N5 hợp lệ).
+const N4_MARKS = [["thể khả năng (bài 27)", /(られ|れ)ませ|られる|られます|(行け|書け|読め|話せ|使え|飲め|来られ)[なまる]/],
+  ["～ので (bài 39)", /(る|た|い|だ|な) ?ので/], ["～んです (bài 26)", /(る|った|いた|した|きた|ない|かった)んです|んですが/], ["～ように (bài 36)", /ように/],
+  ["～ながら (bài 28)", /ながら/], ["～つもり (bài 31)", /つもり/], ["～て おく (bài 30)", /て ?(おきま|おいて|おいた|おく)/], ["～て しまう (bài 29)", /て ?しま[いっう]/],
+  ["使役／受身 (bài 37, 48)", /させ|られまし/]];
+(() => {
+  const B = (ctx.BANK || {}).N5; if (!B) return;
+  const strs = [];
+  const walk = (x, p) => { if (typeof x === "string") strs.push([p, x]); else if (Array.isArray(x)) x.forEach((y, i) => walk(y, `${p}[${i}]`)); else if (x && typeof x === "object") Object.entries(x).forEach(([k, v]) => walk(v, `${p}.${k}`)); };
+  walk(B, "N5");
+  strs.forEach(([p, t]) => {
+    if (!/[ぁ-んァ-ン]/.test(t)) return; // bỏ qua giải thích thuần tiếng Việt
+    N4_MARKS.forEach(([name, re]) => { const m = t.match(re); if (m) err(`data/bank_n5.js ${p}`, `dùng ngữ pháp N4 — ${name}: "${m[0]}" trong ${t.slice(0, 40)}`); });
+  });
+})();
+
 // ---------- Kiến thức nền & N3–N1 ----------
 const H = ctx.HUBDATA || {};
 (H.jita || []).forEach((r, i) => { if (r.length !== 8 || r.slice(0, 7).some((x) => !x)) err("data/hub_data.js", `cặp tự/tha #${i + 1} sai định dạng`); });

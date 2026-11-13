@@ -18,6 +18,15 @@ Phần 3 có ô **nạp file nghe của riêng bạn** (lưu trong trình duyệ
 
 Thư mục `_tailieu/` (tài liệu tham khảo tải từ Drive, có bản quyền) nằm trong `.gitignore` — **không bao giờ đưa lên Git**.
 
+## Quy trình phát triển (Spec Kit)
+
+Dự án dùng [Spec Kit](https://github.com/github/spec-kit) (`specify` CLI 1.4.0, tích hợp Claude):
+
+- **Nguyên tắc dự án**: `.specify/memory/constitution.md` (bản quyền, phạm vi bài, sát JLPT, cổng kiểm tra, web tĩnh, trung thực).
+- **Đặc tả nền** của toàn bộ phần đã xây dựng: `specs/001-baseline-web-nihongo/` (spec, plan, tasks + kết quả rà soát Convergence).
+- **Tính năng mới** đi theo: `/speckit-specify` → (`/speckit-clarify`) → `/speckit-plan` → `/speckit-tasks` → (`/speckit-analyze`) → `/speckit-implement` → `/speckit-converge`. Mỗi tính năng một thư mục `specs/NNN-ten/`.
+- Skill nằm trong `.claude/skills/speckit-*`; script PowerShell trong `.specify/scripts/powershell/` (chạy qua PowerShell, không qua bash).
+
 ## Bản quyền nội dung
 
 Danh sách từ của từng bài được đối chiếu với trang tổng hợp của Riki (riki.edu.vn/minna-no-nihongo) để đủ từ theo giáo trình; nghĩa, ví dụ và giải thích ngữ pháp là tự viết, không sao chép văn bản của Riki.
