@@ -21,6 +21,10 @@
 
 ## Nhật ký phiên
 
+### 2026-11-13 — Spec 002 giảm lặp đề (đang dở)
+- Đã đẩy commit Spec Kit. Tạo `specs/002-reduce-exam-repeats/` (spec, checklist, plan, tasks) và `tools/repeat_stats.js` (đo lặp từng dạng).
+- Số đo trước khi làm: 22/29 dạng lặp 13–79%; cần thêm ≈1.100 câu khác nhau. Chưa làm task T002–T011 (dừng vì hết hạn mức sử dụng). Làm tiếp: `/speckit-implement` từ T002.
+
 ### 2026-11-13 — Áp dụng Spec Kit + rà soát toàn bộ
 - Cài sẵn `specify` 1.4.0 trên máy; `specify init --here --integration claude` → `.specify/` (mẫu, script PowerShell) và 9 skill `.claude/skills/speckit-*`. Sửa `.gitignore` để theo dõi `.claude/skills/` (vẫn bỏ qua phần còn lại của `.claude/`). Script `.ps1` bị chặn khi gọi từ bash (execution policy) — chạy bằng công cụ PowerShell, không đổi cài đặt hệ thống.
 - Viết constitution v1.0.0 (6 nguyên tắc) và đặc tả nền `specs/001-baseline-web-nihongo/` (spec 8 user story, 16 FR, 5 SC; plan có Constitution Check; tasks Phase 1–9 hồi tố).
