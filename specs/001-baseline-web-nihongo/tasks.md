@@ -68,7 +68,7 @@ Phase Convergence là kết quả rà soát mã nguồn so với spec/plan/const
 - [X] T022 [US6] F2 (HIGH, partial FR-015 / Constitution IV): thêm luật validate phát hiện mẫu ngữ pháp N4 (thể khả năng, ので, んです, ように, ながら, つもり, ておく, てしまう, させ) trong ngân hàng N5 — `tools/validate.js`
 - [X] T023 [P] [US6] F4 (LOW, partial FR-012): phương án nhiễu「ので」(N4) trong bài 文章の文法 N5 số 3 — đổi sang trợ từ N5 trong `data/bank_n5.js`
 - [X] T024 [P] F5 (MEDIUM, partial Governance): ghi quy trình Spec Kit vào `README.md` và cập nhật mục "Việc tiếp theo" đã lỗi thời trong `GHI_NHO.md`
-- [ ] T025 [US6] F3 (MEDIUM, partial SC-004): bổ sung ngân hàng câu để tỉ lệ lặp mỗi dạng ≤ 50% (hiện 50–79% ở 言い換え, 用法, 発話表現, 即時応答, 課題理解, 短文) — `data/bank_n5.js`, `data/bank_n4.js`. Nên làm qua spec riêng `002-…`
+- [X] T025 [US6] F3 (MEDIUM, partial SC-004) — xong qua `specs/002-reduce-exam-repeats` (lặp tối đa 4,2%);: bổ sung ngân hàng câu để tỉ lệ lặp mỗi dạng ≤ 50% (hiện 50–79% ở 言い換え, 用法, 発話表現, 即時応答, 課題理解, 短文) — `data/bank_n5.js`, `data/bank_n4.js`. Nên làm qua spec riêng `002-…`
 - [ ] T026 [US3] F6 (LOW, unverified FR-004): nghe thử bằng tai bài nghe và câu nghe trong đề; bổ sung `js/yomi.js` khi đọc sai (cần người dùng)
 
 ## Dependencies & Execution Order

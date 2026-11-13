@@ -4,7 +4,7 @@
 
 **Created**: 2026-11-13
 
-**Status**: Draft
+**Status**: Implemented (2026-11-13)
 
 **Input**: User description: "Có thể dùng các dữ liệu ở các nguồn ngoài có liên quan hoặc nằm ở phạm vi cho phép
 để giảm xuống sao cho chỉ có nhiều nhất 5% trùng thôi" (tiếp nối task T025 của 001).

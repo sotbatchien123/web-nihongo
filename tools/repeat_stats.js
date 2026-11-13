@@ -6,8 +6,8 @@ const ROOT = path.join(__dirname, "..");
 const ctx = { console }; ctx.window = ctx; vm.createContext(ctx);
 const html = fs.readFileSync(path.join(ROOT, "index.html"), "utf8");
 for (const [, src] of html.matchAll(/<script src="([^"]+)"><\/script>/g)) if (src !== "js/app.js") vm.runInContext(fs.readFileSync(path.join(ROOT, src), "utf8"), ctx, { filename: src });
-// Khóa nhận diện "cùng một câu": đề bài + câu hỏi nghe + đáp án đúng + 30 ký tự đầu của đoạn văn.
-const key = (it, s) => [it.q, it.ask || "", it.o[it.a], (it.passage || s.passage || "").slice(0, 30), ((it.listen || [])[0] || [])[1] || ""].join("|");
+// Khóa nhận diện "cùng một câu": đề bài + câu hỏi nghe + đáp án đúng + toàn bộ đoạn văn + câu thoại đầu.
+const key = (it, s) => [it.q, it.ask || "", it.o[it.a], (it.passage || s.passage || ""), ((it.listen || [])[0] || [])[1] || ""].join("|");
 const rows = [];
 for (const lv of ["N5", "N4"]) {
   const by = {};

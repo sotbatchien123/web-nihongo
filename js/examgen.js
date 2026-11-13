@@ -56,6 +56,7 @@
     ls.forEach((L) => {
       L.vocab.forEach((v) => (v.ex || []).forEach(([jp, vi]) => sentences.push({ jp, vi, lesson: L.id })));
       L.grammar.forEach((g) => g.usage.forEach((u) => u.ex.forEach(([jp, vi]) => sentences.push({ jp, vi, lesson: L.id }))));
+      if (L.listening) L.listening.script.forEach((l) => l.jp.split(/(?<=。)/).forEach((jp) => jp.trim() && sentences.push({ jp: jp.trim(), vi: l.vi, lesson: L.id })));
       L.grammarQuiz.forEach((q) => { if (q.q.includes("（　）") && !hasLatin(q.q) && !q.q.includes("\n") && !q.q.includes("――")) sentences.push({ jp: q.q.replace("（　）", q.o[q.a]), vi: q.ex, lesson: L.id }); });
     });
     const grammar = ls.flatMap((L) => L.grammarQuiz.map((q) => ({ ...q, lesson: L.id })));
@@ -152,12 +153,13 @@
     if (/[「」―（）()？?]/.test(body) || hasLatin(body)) return null;
     const ch = body.split(/\s+/).filter(Boolean);
     if (ch.length < 5 || new Set(ch).size !== ch.length) return null;
-    const start = Math.floor(r() * (ch.length - 4 + 1));
+    // Câu soạn tay có vị trí 4 ô chỉ định sẵn (đoạn thứ tự cố định); câu khác chọn ngẫu nhiên rồi lọc.
+    const start = s.start != null ? s.start : Math.floor(r() * (ch.length - 4 + 1));
     const win = ch.slice(start, start + 4);
     // Loại cửa sổ có ≥2 cụm “di chuyển được” để tránh nhiều thứ tự đều đúng.
     const TIME = /^(今|毎朝|毎日|毎晩|毎週|来月|来週|来年|先週|先月|去年|きのう|あした|きょう|いつも|時々|もう|まだ|よく|ちょっと|とても|すぐ|たぶん|きっと|一人で|みんなで|ゆっくり|初めて|また|ぜひ|いちばん|全部|少し|たくさん|みんな|だいたい|いっしょに|必ず|絶対に|やっと|かなり|できるだけ|急に|ちゃんと|もうすぐ|だんだん)$/;
     const flexible = win.filter((c, i) => i < 3 && (/[はがもをにでへとまでから]、?$/.test(c) || TIME.test(c))).length;
-    if (flexible >= 2) return null;
+    if (flexible >= 2 && s.start == null) return null;
     const q = [...ch.slice(0, start), "＿＿ ＿＿ ＿★＿ ＿＿", ...ch.slice(start + 4)].join(" ") + "。";
     return { q, o: [win[2], ...win.filter((_, i) => i !== 2)], a: 0,
       ex: `Câu đúng: ${s.jp} — ${s.vi}. Thứ tự 4 ô: ${win.join(" / ")} → ô ★ (thứ 3) là 「${win[2]}」. Mẹo: ghép từng cụm “danh từ + trợ từ” trước, động từ đứng cuối cụm.` };
@@ -202,68 +204,87 @@
   const sokuji = ([say, ok, w1, w2, note], k) => ({ q: "", listen: [[k % 2 ? "F" : "M", say]], o: [ok, w1, w2], a: 0, spoken: true, voice: k % 2 ? "M" : "F", ex: note });
 
   // ---------- Lắp đề ----------
-  // Lấy n mục từ danh sách (đã xáo) theo vòng: đề e lấy đoạn bắt đầu ở e*n, nên các đề dùng đều kho câu.
+  // Mỗi dạng câu có một kho đã khử trùng, xáo theo hạt giống; đề e lấy đoạn bắt đầu ở e*n,
+  // nên không câu nào bị dùng lại trước khi kho của dạng đó cạn (spec 002, FR-003).
   const chunk = (list, e, n) => { const out = []; for (let i = 0; i < n && list.length; i++) out.push(list[(e * n + i) % list.length]); return [...new Set(out)]; };
-  function takeGen(gen, list, state, n, r) {
-    const out = []; const seen = new Set();
-    for (let guard = 0; out.length < n && guard < list.length; guard++) {
-      const it = gen(list[(state.v++) % list.length], r);
-      if (it && !seen.has(it.q + it.o[0])) { seen.add(it.q + it.o[0]); out.push(it); }
-    }
-    return out;
+  const itemKey = (it) => [it.q, it.ask || "", it.o[it.a], (it.passage || ""), ((it.listen || [])[0] || [])[1] || ""].join("|");
+  const dedupe = (items) => { const seen = new Set(); return items.filter((it) => { if (!it) return false; const k = itemKey(it); if (seen.has(k)) return false; seen.add(k); return true; }); };
+  // 言い換え: phần tử đầu có thể là mảng nhiều khung câu (cùng cặp từ, ngữ cảnh khác) → mỗi khung một câu.
+  const expandIikae = (b) => (Array.isArray(b[0]) ? b[0].map((s) => [s, ...b.slice(1)]) : [b]);
+  // 用法: [từ, câu đúng | [nhiều câu đúng], sai1, sai2, sai3, …, ghi chú] → mỗi câu đúng một câu hỏi, xoay vòng câu sai.
+  function expandYouhou(b) {
+    const [w, okRaw, ...rest] = b; const note = rest.pop(); const oks = Array.isArray(okRaw) ? okRaw : [okRaw];
+    return oks.map((ok, i) => { const wr = rest.map((_, k) => rest[(i + k) % rest.length]).slice(0, 3); return [w, ok, ...wr, note]; });
   }
+  // 文脈規定 soạn tay: [câu có （　　）, đúng, sai1, sai2, sai3, ghi chú]
+  const bunmyakuB = ([q, ok, w1, w2, w3, note]) => ({ q, o: [ok, w1, w2, w3], a: 0, ex: note });
+  // 文法 soạn tay: {q, o, a, ex} như grammarQuiz của bài học.
+  const bunpoB = (g) => ({ q: g.q, o: g.o, a: g.a || 0, ex: g.ex });
 
   function build(level, from, to, seed, plan) {
     const P = pools(from, to);
     const B = BANK[level] || {};
     if (!P.ls.length) return [];
     const R = rng(seed);
+    // Phần 1: chữ – từ vựng (sinh từ dữ liệu bài học; 文脈規定 cộng thêm câu kết hợp từ soạn tay).
     const vocabK = shuffle(P.usable.filter((v) => hasKanji(v.w) && v.r !== v.w), R);
+    const yomiPool = dedupe(vocabK.map((v) => kanjiReading(v, P, R)));
+    const hyokiPool = dedupe(shuffle(vocabK, R).map((v) => kanjiWriting(v, P, R)));
     const vocabC = shuffle(P.usable.filter((v) => /^(động từ|danh từ)/.test(v.t)), R);
-    const gJp = shuffle(P.grammar.filter((q) => !hasLatin(q.q) && q.o.every((o) => !hasLatin(o))), R);
-    const gAll = [...gJp, ...shuffle(P.grammar.filter((q) => !gJp.includes(q)), R)];
-    const sents = shuffle(P.sentences, R);
+    const ctxPool = shuffle(dedupe([...vocabC.map((v) => context(v, P, R)), ...(B.bunmyaku || []).map(bunmyakuB)]), R);
+    // Phần 2: ngữ pháp – đọc.
+    const gJp = P.grammar.filter((q) => !hasLatin(q.q) && q.o.every((o) => !hasLatin(o)));
+    const bunpoPool = dedupe([...shuffle(gJp.map((g) => ({ q: g.q, o: g.o, a: g.a, ex: `${g.ex} (ngữ pháp bài ${g.lesson})` })), R),
+      ...shuffle((B.bunpo || []).map(bunpoB), R),
+      ...shuffle(P.grammar.filter((q) => !gJp.includes(q)).map((g) => ({ q: g.q, o: g.o, a: g.a, ex: `${g.ex} (ngữ pháp bài ${g.lesson})` })), R)]);
+    // ★: mỗi câu cho tối đa 2 vị trí ô khác nhau.
+    // Câu soạn tay cho ★: [câu tiếng Nhật có cách cụm, nghĩa].
+    const starPool = dedupe(shuffle([...P.sentences, ...(B.star || []).map(([jp, vi, start]) => ({ jp, vi, start }))], R).flatMap((s) => (s.start != null ? [star(s, R)] : [star(s, R), star(s, R)])));
     const readLs = shuffle(P.ls.filter((L) => L.reading && L.reading.questions.length >= plan.chubun), R);
-    // ポイント理解: mỗi đoạn hội thoại của bài học tách thành các câu; một đề không lấy hai câu của cùng một đoạn.
-    const pointPool = shuffle(P.ls.filter((L) => L.listening).flatMap((L) => L.listening.questions.map((q) => ({ L, q }))), R);
-    const bank = (k) => shuffle(B[k] || [], R);
-    const BK = { iikae: bank("iikae"), youhou: bank("youhou"), bunsho: bank("bunsho"), tanbun: bank("tanbun"), joho: bank("joho"), kadai: bank("kadai"), hatsuwa: bank("hatsuwa"), sokuji: bank("sokuji") };
-    const st = { k: { v: 0 }, c: { v: 0 }, s: { v: 0 }, g: 0, p: 0 };
+    // Phần 3: ポイント理解 = câu hỏi của bài nghe trong bài học + đoạn soạn sẵn; một đề không lấy hai câu của cùng một đoạn.
+    const pointPool = shuffle([...P.ls.filter((L) => L.listening).flatMap((L) => L.listening.questions.map((q) => ({ g: "L" + L.id, it: point(L, q) }))),
+      ...(B.point || []).map((b, i) => ({ g: "B" + i, it: kadai(b) }))], R);
+    const bank = (k, map) => shuffle(dedupe((B[k] || []).map(map)), R);
+    const BK = {
+      iikae: (B.iikae || []).flatMap(expandIikae).map(iikae), youhou: shuffle((B.youhou || []).flatMap(expandYouhou), R).map(youhou),
+      tanbun: bank("tanbun", tanbun), kadai: bank("kadai", kadai), hatsuwa: bank("hatsuwa", hatsuwa),
+      sokuji: shuffle(dedupe((B.sokuji || []).map((b, k) => sokuji(b, k))), R),
+      bunsho: shuffle(B.bunsho || [], R), joho: shuffle(B.joho || [], R)
+    };
+    BK.iikae = shuffle(dedupe(BK.iikae), R); BK.youhou = dedupe(BK.youhou);
+    // Xếp xen kẽ các đoạn hội thoại (mỗi lượt lấy một câu của mỗi đoạn) để câu liền nhau thuộc đoạn khác nhau.
+    const byG = {}; pointPool.forEach((x) => (byG[x.g] = byG[x.g] || []).push(x));
+    const pointSeq = []; for (let k = 0; pointSeq.length < pointPool.length; k++) Object.values(byG).forEach((l) => l[k] && pointSeq.push(l[k]));
     const exams = [];
     for (let e = 0; e < 20; e++) {
       const r = rng(seed * 100 + e + 1);
-      const reading = takeGen((v) => kanjiReading(v, P, r), vocabK, st.k, plan.yomi, r);
-      const writing = takeGen((v) => kanjiWriting(v, P, r), vocabK, st.k, plan.hyoki, r);
-      const ctx = takeGen((v) => context(v, P, r), vocabC, st.c, plan.bunmyaku, r);
-      const grammar = []; for (let i = 0; i < plan.bunpo; i++) { const g = gAll[(st.g++) % gAll.length]; grammar.push({ q: g.q, o: g.o, a: g.a, ex: `${g.ex} (ngữ pháp bài ${g.lesson})` }); }
-      const stars = takeGen((s) => star(s, r), sents, st.s, plan.star, r);
-      const points = []; const usedL = new Set();
-      for (let guard = 0; points.length < plan.point && guard < pointPool.length; guard++) {
-        const x = pointPool[(st.p++) % pointPool.length]; if (usedL.has(x.L.id)) continue; usedL.add(x.L.id); points.push(point(x.L, x.q)); }
+      const points = []; const usedG = new Set();
+      for (let i = e * plan.point, guard = 0; points.length < plan.point && guard < pointSeq.length; i++, guard++) {
+        const x = pointSeq[i % pointSeq.length]; if (usedG.has(x.g)) continue; usedG.add(x.g); points.push(x.it); }
       let num = 0;
       const sec = (name, instruction, items) => ({ name: `もんだい${++num} ${name}`, instruction, items });
       const p1 = [
-        sec("漢字読み", "＿＿の ことばは ひらがなで どう かきますか。1・2・3・4から いちばん いい ものを ひとつ えらんで ください。", reading),
-        sec("表記", "＿＿の ことばは どう かきますか。1・2・3・4から いちばん いい ものを ひとつ えらんで ください。", writing),
-        sec("文脈規定", "（　　）に なにを いれますか。1・2・3・4から いちばん いい ものを ひとつ えらんで ください。", ctx),
-        sec("言い換え類義", "＿＿の ぶんと だいたい おなじ いみの ぶんが あります。1・2・3・4から いちばん いい ものを ひとつ えらんで ください。", chunk(BK.iikae, e, plan.iikae).map(iikae))
+        sec("漢字読み", "＿＿の ことばは ひらがなで どう かきますか。1・2・3・4から いちばん いい ものを ひとつ えらんで ください。", chunk(yomiPool, e, plan.yomi)),
+        sec("表記", "＿＿の ことばは どう かきますか。1・2・3・4から いちばん いい ものを ひとつ えらんで ください。", chunk(hyokiPool, e, plan.hyoki)),
+        sec("文脈規定", "（　　）に なにを いれますか。1・2・3・4から いちばん いい ものを ひとつ えらんで ください。", chunk(ctxPool, e, plan.bunmyaku)),
+        sec("言い換え類義", "＿＿の ぶんと だいたい おなじ いみの ぶんが あります。1・2・3・4から いちばん いい ものを ひとつ えらんで ください。", chunk(BK.iikae, e, plan.iikae))
       ];
-      if (plan.youhou) p1.push(sec("用法", "つぎの ことばの つかいかたで いちばん いい ものを 1・2・3・4から ひとつ えらんで ください。", chunk(BK.youhou, e, plan.youhou).map(youhou)));
+      if (plan.youhou) p1.push(sec("用法", "つぎの ことばの つかいかたで いちばん いい ものを 1・2・3・4から ひとつ えらんで ください。", chunk(BK.youhou, e, plan.youhou)));
       num = 0;
       const p2 = [
-        sec("文法形式の判断", "（　　）に 何を 入れますか。1・2・3・4から いちばん いい ものを 一つ えらんで ください。", grammar),
-        sec("文の組み立て", "つぎの 文の ＿★＿ に 入る ものは どれですか。1・2・3・4から いちばん いい ものを 一つ えらんで ください。", stars)
+        sec("文法形式の判断", "（　　）に 何を 入れますか。1・2・3・4から いちばん いい ものを 一つ えらんで ください。", chunk(bunpoPool, e, plan.bunpo)),
+        sec("文の組み立て", "つぎの 文の ＿★＿ に 入る ものは どれですか。1・2・3・4から いちばん いい ものを 一つ えらんで ください。", chunk(starPool, e, plan.star))
       ];
       if (BK.bunsho.length) p2.push(bunsho(BK.bunsho[e % BK.bunsho.length], ++num));
-      p2.push(sec("内容理解（短文）", "つぎの 文章を 読んで、しつもんに こたえて ください。こたえは、1・2・3・4から いちばん いい ものを 一つ えらんで ください。", chunk(BK.tanbun, e, plan.tanbun).map(tanbun)));
+      p2.push(sec("内容理解（短文）", "つぎの 文章を 読んで、しつもんに こたえて ください。こたえは、1・2・3・4から いちばん いい ものを 一つ えらんで ください。", chunk(BK.tanbun, e, plan.tanbun)));
       if (readLs.length) p2.push(chubun(readLs[e % readLs.length], plan.chubun, r, ++num));
       if (BK.joho.length) p2.push(joho(BK.joho[e % BK.joho.length], plan.joho, ++num));
       num = 0;
       const p3 = [
-        sec("課題理解", "まず しつもんを 聞いて ください。それから 話を 聞いて、1から4の 中から、いちばん いい ものを 一つ えらんで ください。", chunk(BK.kadai, e, plan.kadai).map(kadai)),
+        sec("課題理解", "まず しつもんを 聞いて ください。それから 話を 聞いて、1から4の 中から、いちばん いい ものを 一つ えらんで ください。", chunk(BK.kadai, e, plan.kadai)),
         sec("ポイント理解", "まず しつもんを 聞いて ください。そのあと、せんたくしを 読んで ください。それから 話を 聞いて、いちばん いい ものを 一つ えらんで ください。", points),
-        sec("発話表現", "絵を 見ながら しつもんを 聞いて ください。→（やじるしの 人）は 何と 言いますか。1から3の 中から、いちばん いい ものを 一つ えらんで ください。", chunk(BK.hatsuwa, e, plan.hatsuwa).map(hatsuwa)),
-        sec("即時応答", "絵などが ありません。まず 文を 聞いて ください。それから、その へんじを 聞いて、1から3の 中から、いちばん いい ものを 一つ えらんで ください。", chunk(BK.sokuji, e, plan.sokuji).map((b, k) => sokuji(b, k)))
+        sec("発話表現", "絵を 見ながら しつもんを 聞いて ください。→（やじるしの 人）は 何と 言いますか。1から3の 中から、いちばん いい ものを 一つ えらんで ください。", chunk(BK.hatsuwa, e, plan.hatsuwa)),
+        sec("即時応答", "絵などが ありません。まず 文を 聞いて ください。それから、その へんじを 聞いて、1から3の 中から、いちばん いい ものを 一つ えらんで ください。", chunk(BK.sokuji, e, plan.sokuji))
       ];
       exams.push({ id: `${level.toLowerCase()}-${String(e + 1).padStart(2, "0")}`, group: level, generated: true, name: `Đề ${level} số ${e + 1}`,
         parts: [{ name: "言語知識（文字・語彙）", minutes: plan.min[0], sections: p1 }, { name: "言語知識（文法）・読解", minutes: plan.min[1], sections: p2 }, { name: "聴解", minutes: plan.min[2], sections: p3 }] });

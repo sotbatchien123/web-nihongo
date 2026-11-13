@@ -115,6 +115,8 @@ for (const c of CATALOG) {
 }
 
 // ---------- 3. Đề thi ----------
+// Khóa nhận diện “cùng một câu” dùng chung với tools/repeat_stats.js (spec 002).
+const repeatKey = (it, s) => [it.q, it.ask || "", it.o[it.a], (it.passage || s.passage || ""), ((it.listen || [])[0] || [])[1] || ""].join("|");
 const ids = new Set();
 const partsOf = (e) => e.parts || [{ name: "", minutes: e.minutes, sections: e.sections }];
 EXAMS.forEach((e) => {
@@ -132,7 +134,7 @@ EXAMS.forEach((e) => {
         else opts4(w, it);
         if (!it.ex) err(w, "thiếu giải thích");
         (it.listen || []).forEach(([sp, t]) => { if (!["F", "M"].includes(sp) || !t) err(w, `lời thoại sai định dạng (người nói F/M): ${sp}`); });
-        const key = it.q + "|" + it.o[it.a] + "|" + (it.ask || "") + "|" + ((it.listen || [])[0] || [])[1];
+        const key = repeatKey(it, s);
         if (qs.has(key)) err(w, "trùng câu trong cùng một đề");
         qs.add(key);
       });
@@ -160,12 +162,14 @@ for (const lv of ["N5", "N4"]) {
       if (!need) return;
       if (!s) return err(`đề ${e.id}`, `thiếu dạng ${nm}`);
       if (s.items.length !== need) err(`đề ${e.id}`, `${nm} có ${s.items.length}/${need} câu`);
-      (all[nm] = all[nm] || []).push(...s.items.map((it) => it.q + "|" + (it.ask || "") + "|" + it.o[it.a] + "|" + (s.passage || "").slice(0, 30)));
+      (all[nm] = all[nm] || []).push(...s.items.map((it) => repeatKey(it, s)));
     });
     if (names.length !== new Set(names).size) err(`đề ${e.id}`, "lặp tên dạng câu");
   });
-  // Tỉ lệ lặp câu giữa 20 đề (chỉ cảnh báo).
-  Object.entries(all).forEach(([nm, arr]) => { const p = Math.round(100 * (1 - new Set(arr).size / arr.length)); if (p > 0) warn(`đề ${lv}`, `${nm}: ${p}% câu lặp giữa các đề`); });
+  // Tỉ lệ lặp câu giữa 20 đề: > 5% là LỖI (spec 002, FR-002); > 0% chỉ cảnh báo.
+  Object.entries(all).forEach(([nm, arr]) => { const p = Math.round(1000 * (1 - new Set(arr).size / arr.length)) / 10;
+    if (p > 5) err(`đề ${lv}`, `${nm}: ${p}% câu lặp giữa các đề (tối đa 5%) — cần thêm ${Math.ceil(arr.length * 0.95) - new Set(arr).size} câu khác nhau`);
+    else if (p > 0) warn(`đề ${lv}`, `${nm}: ${p}% câu lặp giữa các đề`); });
 }
 
 // ---------- Phạm vi ngữ pháp của ngân hàng câu N5 (constitution II) ----------

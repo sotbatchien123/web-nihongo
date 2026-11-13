@@ -15,15 +15,17 @@
 
 - Nghe thử phần nghe bằng tai, bổ sung `js/yomi.js` khi thấy đọc sai.
 - Rà soát chất lượng nội dung (người dạy tiếng Nhật đọc duyệt), nhất là bài 41–50 (kính ngữ).
-- Giảm lặp câu giữa 40 đề (task T025 trong `specs/001-baseline-web-nihongo/tasks.md`): bổ sung ngân hàng câu `data/bank_n5.js`, `data/bank_n4.js` — nên làm qua spec mới `002-…`.
 - Đề thi N3–N1 (người dùng hẹn làm sau) — làm qua `/speckit-specify`.
 - Từ nay mọi tính năng mới đi theo quy trình Spec Kit (xem README, constitution).
 
 ## Nhật ký phiên
 
-### 2026-11-13 — Spec 002 giảm lặp đề (đang dở)
-- Đã đẩy commit Spec Kit. Tạo `specs/002-reduce-exam-repeats/` (spec, checklist, plan, tasks) và `tools/repeat_stats.js` (đo lặp từng dạng).
-- Số đo trước khi làm: 22/29 dạng lặp 13–79%; cần thêm ≈1.100 câu khác nhau. Chưa làm task T002–T011 (dừng vì hết hạn mức sử dụng). Làm tiếp: `/speckit-implement` từ T002.
+### 2026-11-13 — Spec 002 giảm lặp đề ≤5% (xong)
+- Quy trình Spec Kit: spec → plan → tasks → implement → converge (`specs/002-reduce-exam-repeats/`).
+- `js/examgen.js`: mỗi dạng câu dựng kho khử trùng, chia lần lượt cho 20 đề (không dùng lại trước khi cạn); đọc thêm `BANK.*.bunmyaku/bunpo/point/star`; 言い換え nhiều khung, 用法 nhiều câu đúng; ★ có vị trí ô chỉ định cho câu soạn tay; câu thoại bài nghe làm nguồn ★; ポイント理解 xếp xen kẽ theo đoạn.
+- Mẫu sinh `data/bank_tpl_n5.js`, `data/bank_tpl_n4.js` + câu soạn tay. Không dùng nguồn ngoài (Tatoeba không tách cụm, khó kiểm soát phạm vi).
+- validate: khóa nhận diện chung với `tools/repeat_stats.js` (gồm cả đoạn văn); lặp >5% là LỖI.
+- Kết quả: 0/29 dạng vượt 5% (cao nhất 4,2%), 40/40 đề đúng hết = 180/180 trên trình duyệt, không lỗi console. Chưa nghe thử bằng tai các câu nghe mới.
 
 ### 2026-11-13 — Áp dụng Spec Kit + rà soát toàn bộ
 - Cài sẵn `specify` 1.4.0 trên máy; `specify init --here --integration claude` → `.specify/` (mẫu, script PowerShell) và 9 skill `.claude/skills/speckit-*`. Sửa `.gitignore` để theo dõi `.claude/skills/` (vẫn bỏ qua phần còn lại của `.claude/`). Script `.ps1` bị chặn khi gọi từ bash (execution policy) — chạy bằng công cụ PowerShell, không đổi cài đặt hệ thống.
